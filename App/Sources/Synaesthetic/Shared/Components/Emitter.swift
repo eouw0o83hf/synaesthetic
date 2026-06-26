@@ -18,7 +18,7 @@ struct Emitter: View {
                 Circle()
                     .fill(
                         AngularGradient(
-                            colors: [color, highlightColor, color],
+                            colors: [color, highlightColor],
                             center: .center
                         )
                     )
