@@ -2,25 +2,21 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Image(systemName: "app.gift.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.tint)
+        GeometryReader { geometry in
+            ZStack {
+                Color.black
+                    .ignoresSafeArea()
 
-                VStack(spacing: 8) {
-                    Text("Synaesthetic")
-                        .font(.largeTitle.bold())
-
-                    Text("Start building your app here.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Circle()
+                    .fill(.red)
+                    .frame(width: radiusSize(geometry), height: radiusSize(geometry))
             }
-            .padding()
-            .navigationTitle("Synaesthetic")
-            .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    private func radiusSize(_ geometry: GeometryProxy) -> CGFloat {
+        let minDimension = min(geometry.size.width, geometry.size.height)
+        return minDimension * 0.6
     }
 }
 
