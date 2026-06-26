@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 /// A circle with an angular gradient that wraps around with a sharp radial edge.
 /// The radius is a percentage of the smaller screen dimension.
@@ -33,6 +34,15 @@ struct Emitter: View {
 
     /// Timer for applying braking force during stationary touch.
     @State private var brakingTimer: Timer?
+
+    /// Audio engine for sound generation.
+    @State private var audioEngine: AVAudioEngine?
+
+    /// Audio source node for tone generation.
+    @State private var sourceNode: AVAudioSourceNode?
+
+    /// Current phase of the audio waveform.
+    @State private var phase: Double = 0
 
     init(
         radiusPercent: CGFloat,
@@ -76,6 +86,11 @@ struct Emitter: View {
         }
         .onAppear {
             startRotation()
+            setupAudio()
+            startAudio()
+        }
+        .onDisappear {
+            stopAudio()
         }
     }
 
@@ -89,6 +104,93 @@ struct Emitter: View {
     private func startRotation() {
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
             rotation += velocity / 60.0
+        }
+    }
+
+    /// Sets up the audio engine and source node for tone generation.
+    private func setupAudio() {
+        // Configure audio session for playback
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+        } catch {
+            print("Failed to set up audio session: \(error)")
+            return
+        }
+
+        let engine = AVAudioEngine()
+        let mainMixer = engine.mainMixerNode
+        let format = mainMixer.outputFormat(forBus: 0)
+
+        let sampleRate = format.sampleRate
+
+        // Create a source node that generates sine wave audio
+        let source = AVAudioSourceNode { [self] _, _, frameCount, audioBufferList -> OSStatus in
+            let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+
+            // Silence when velocity is effectively zero
+            guard abs(velocity) > 0.01 else {
+                for buffer in ablPointer {
+                    let buf: UnsafeMutableBufferPointer<Float> = UnsafeMutableBufferPointer(buffer)
+                    for frame in 0..<Int(frameCount) {
+                        buf[frame] = 0.0
+                    }
+                }
+                return noErr
+            }
+
+            // Linear frequency mapping: velocity 0-25 maps to 0-4000 Hz
+            // Velocity is capped at 25 maximum
+            let clampedVelocity = min(abs(velocity), 25.0)
+            let frequency = (clampedVelocity / 25.0) * 4000.0
+            let amplitude: Float = 0.15 // Keep volume moderate
+
+            for frame in 0..<Int(frameCount) {
+                // Generate sine wave sample
+                let value = sin(phase * 2.0 * .pi) * Double(amplitude)
+                phase += frequency / sampleRate
+                if phase >= 1.0 {
+                    phase -= 1.0
+                }
+
+                // Write to all channels
+                for buffer in ablPointer {
+                    let buf: UnsafeMutableBufferPointer<Float> = UnsafeMutableBufferPointer(buffer)
+                    buf[frame] = Float(value)
+                }
+            }
+
+            return noErr
+        }
+
+        engine.attach(source)
+        engine.connect(source, to: mainMixer, format: format)
+
+        self.audioEngine = engine
+        self.sourceNode = source
+    }
+
+    /// Starts the audio engine.
+    private func startAudio() {
+        guard let engine = audioEngine else { return }
+
+        do {
+            try engine.start()
+        } catch {
+            print("Failed to start audio engine: \(error)")
+        }
+    }
+
+    /// Stops the audio engine.
+    private func stopAudio() {
+        audioEngine?.stop()
+
+        // Deactivate audio session
+        do {
+            try AVAudioSession.sharedInstance().setActive(false)
+        } catch {
+            print("Failed to deactivate audio session: \(error)")
         }
     }
 
@@ -147,8 +249,8 @@ struct Emitter: View {
         brakingTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
             // Braking force: reduce velocity by a percentage per frame
             // Using exponential decay: v_new = v_old * (1 - brakingRate)
-            // Higher rate = faster stopping. 0.12 gives responsive braking in ~0.5 seconds
-            let brakingRate: CGFloat = 0.12
+            // Higher rate = more aggressive braking. 0.25 provides strong braking even with light touch
+            let brakingRate: CGFloat = 0.25
             velocity *= (1 - brakingRate)
 
             // Stop completely if velocity is very small
@@ -192,7 +294,10 @@ struct Emitter: View {
 
         // Directly set velocity to match finger movement (with smoothing to prevent jitter)
         let smoothingFactor: CGFloat = 0.3 // Higher = more responsive, lower = smoother
-        velocity = velocity * (1 - smoothingFactor) + angularVelocity * smoothingFactor
+        let newVelocity = velocity * (1 - smoothingFactor) + angularVelocity * smoothingFactor
+        
+        // Cap velocity at maximum of 25
+        velocity = max(-25, min(25, newVelocity))
     }
 }
 
