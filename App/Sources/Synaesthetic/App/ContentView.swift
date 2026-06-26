@@ -9,7 +9,7 @@ struct ContentView: View {
                     .foregroundStyle(.tint)
 
                 VStack(spacing: 8) {
-                    Text("__APP_DISPLAY_NAME__")
+                    Text("Synaesthetic")
                         .font(.largeTitle.bold())
 
                     Text("Start building your app here.")
@@ -18,7 +18,7 @@ struct ContentView: View {
                 }
             }
             .padding()
-            .navigationTitle("__APP_DISPLAY_NAME__")
+            .navigationTitle("Synaesthetic")
             .navigationBarTitleDisplayMode(.inline)
         }
     }

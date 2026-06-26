@@ -20,7 +20,7 @@ echo "Bundle ID: $CI_BUNDLE_ID"
 
 # ── Set build number from Xcode Cloud's auto-incremented counter ─────────────
 
-PLIST="$CI_WORKSPACE/App/Sources/__APP_NAME__/Resources/Info.plist"
+PLIST="$CI_WORKSPACE/App/Sources/Synaesthetic/Resources/Info.plist"
 
 if [ -f "$PLIST" ] && [ -n "$CI_BUILD_NUMBER" ]; then
   echo "Setting CFBundleVersion to $CI_BUILD_NUMBER in Info.plist..."

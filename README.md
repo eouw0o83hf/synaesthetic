@@ -66,19 +66,19 @@ Open [_setup/CHECKLIST.md](_setup/CHECKLIST.md) and work through it top to botto
 
 | Placeholder | Example | Description |
 |---|---|---|
-| `__APP_NAME__` | `MyGreatApp` | Xcode target / Swift type name (PascalCase, no spaces) |
-| `__APP_DISPLAY_NAME__` | `My Great App` | Human-readable name shown on device |
-| `__BUNDLE_ID__` | `com.acme.mygreatapp` | Reverse-DNS bundle identifier |
-| `__ORG_IDENTIFIER__` | `com.acme` | Bundle ID prefix |
-| `__TEAM_ID__` | `ABC123DEF4` | 10-char Apple Developer Team ID |
-| `__YEAR__` | `2026` | Current year for copyright |
+| `Synaesthetic` | `MyGreatApp` | Xcode target / Swift type name (PascalCase, no spaces) |
+| `Synaesthetic` | `My Great App` | Human-readable name shown on device |
+| `com.eouw0o83hf.synaesthetic` | `com.acme.mygreatapp` | Reverse-DNS bundle identifier |
+| `com.eouw0o83hf` | `com.acme` | Bundle ID prefix |
+| `5P5S5X2NJ3` | `ABC123DEF4` | 10-char Apple Developer Team ID |
+| `2026` | `2026` | Current year for copyright |
 
 **Env vars** — written to `fastlane/.env` only, never committed:
 
 | Variable | Description |
 |---|---|
 | `APPLE_ID` | Apple ID email for App Store Connect |
-| `APPLE_TEAM_ID` | 10-char Apple Developer Team ID (same value as `__TEAM_ID__`, used by fastlane) |
+| `APPLE_TEAM_ID` | 10-char Apple Developer Team ID (same value as `5P5S5X2NJ3`, used by fastlane) |
 | `MATCH_GIT_URL` | SSH URL of private git repo for fastlane match certs |
 | `MATCH_PASSWORD` | Passphrase to encrypt the certs repo |
 | `APP_STORE_CONNECT_API_KEY_*` | App Store Connect API key (see `fastlane/.env.template`) |
@@ -97,7 +97,7 @@ app-template/
 ├── App/                     ← Template Xcode app
 │   ├── project.yml          ← XcodeGen project definition
 │   ├── Sources/
-│   │   └── __APP_NAME__/    ← Rename to your app name
+│   │   └── Synaesthetic/    ← Rename to your app name
 │   │       ├── App/         ← Entry point + root view
 │   │       ├── Features/    ← Feature modules
 │   │       ├── Shared/      ← Reusable components / extensions

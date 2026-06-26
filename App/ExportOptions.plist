@@ -7,15 +7,15 @@
 	<string>app-store</string>
 
 	<key>teamID</key>
-	<string>__TEAM_ID__</string>
+	<string>5P5S5X2NJ3</string>
 
 	<key>signingStyle</key>
 	<string>manual</string>
 
 	<key>provisioningProfiles</key>
 	<dict>
-		<key>__BUNDLE_ID__</key>
-		<string>match AppStore __BUNDLE_ID__</string>
+		<key>com.eouw0o83hf.synaesthetic</key>
+		<string>match AppStore com.eouw0o83hf.synaesthetic</string>
 	</dict>
 
 	<key>stripSwiftSymbols</key>

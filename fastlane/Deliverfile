@@ -1,7 +1,7 @@
 # fastlane/Deliverfile
 # Default configuration for deliver (upload_to_app_store).
 
-app_identifier "__BUNDLE_ID__"
+app_identifier "com.eouw0o83hf.synaesthetic"
 username ENV.fetch("APPLE_ID", "")
 
 submit_for_review true
@@ -14,8 +14,8 @@ metadata_path "fastlane/metadata"
 
 # Support and Privacy URLs (populated by init.sh via GitHub Pages)
 # These become the URLs shown on your App Store listing.
-support_url "__SUPPORT_URL__"
-privacy_url "__PRIVACY_URL__"
+support_url "https://eouw0o83hf.github.io/synaesthetic/support"
+privacy_url "https://eouw0o83hf.github.io/synaesthetic/privacy"
 
 # Review information
 # submission_information({

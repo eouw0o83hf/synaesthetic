@@ -1,6 +1,6 @@
 import XCTest
 
-final class __APP_NAME__UITests: XCTestCase {
+final class SynaestheticUITests: XCTestCase {
 
     let app = XCUIApplication()
 

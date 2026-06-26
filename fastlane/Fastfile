@@ -46,8 +46,8 @@ platform :ios do
   desc "Run all unit and UI tests"
   lane :test do
     run_tests(
-      project: "App/__APP_NAME__.xcodeproj",
-      scheme: "__APP_NAME__",
+      project: "App/Synaesthetic.xcodeproj",
+      scheme: "Synaesthetic",
       devices: ["iPhone 16 Pro"],
       clean: false,
       result_bundle: true,
@@ -67,34 +67,34 @@ platform :ios do
     api_key = app_store_connect_api_key_from_env
     current_build = latest_testflight_build_number(
       api_key: api_key,
-      app_identifier: "__BUNDLE_ID__",
+      app_identifier: "com.eouw0o83hf.synaesthetic",
       version: get_version_number(
-        xcodeproj: "App/__APP_NAME__.xcodeproj",
-        target: "__APP_NAME__"
+        xcodeproj: "App/Synaesthetic.xcodeproj",
+        target: "Synaesthetic"
       )
     )
     increment_build_number(
       build_number: current_build + 1,
-      xcodeproj: "App/__APP_NAME__.xcodeproj"
+      xcodeproj: "App/Synaesthetic.xcodeproj"
     )
 
     build_app(
-      project: "App/__APP_NAME__.xcodeproj",
-      scheme: "__APP_NAME__",
+      project: "App/Synaesthetic.xcodeproj",
+      scheme: "Synaesthetic",
       configuration: "Release",
       output_directory: "build",
-      output_name: "__APP_NAME__.ipa",
+      output_name: "Synaesthetic.ipa",
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "__BUNDLE_ID__" => "match AppStore __BUNDLE_ID__"
+          "com.eouw0o83hf.synaesthetic" => "match AppStore com.eouw0o83hf.synaesthetic"
         }
       }
     )
 
     upload_to_testflight(
       api_key: api_key,
-      ipa: "build/__APP_NAME__.ipa",
+      ipa: "build/Synaesthetic.ipa",
       skip_waiting_for_build_processing: true,
       changelog: "Bug fixes and improvements"
     )
@@ -102,7 +102,7 @@ platform :ios do
     clean_build_artifacts
     commit_version_bump(
       message: "chore: bump build number [ci skip]",
-      xcodeproj: "App/__APP_NAME__.xcodeproj",
+      xcodeproj: "App/Synaesthetic.xcodeproj",
       force: true
     )
   end
@@ -118,30 +118,30 @@ platform :ios do
     api_key = app_store_connect_api_key_from_env
     current_build = latest_testflight_build_number(
       api_key: api_key,
-      app_identifier: "__BUNDLE_ID__"
+      app_identifier: "com.eouw0o83hf.synaesthetic"
     )
     increment_build_number(
       build_number: current_build + 1,
-      xcodeproj: "App/__APP_NAME__.xcodeproj"
+      xcodeproj: "App/Synaesthetic.xcodeproj"
     )
 
     build_app(
-      project: "App/__APP_NAME__.xcodeproj",
-      scheme: "__APP_NAME__",
+      project: "App/Synaesthetic.xcodeproj",
+      scheme: "Synaesthetic",
       configuration: "Release",
       output_directory: "build",
-      output_name: "__APP_NAME__.ipa",
+      output_name: "Synaesthetic.ipa",
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "__BUNDLE_ID__" => "match AppStore __BUNDLE_ID__"
+          "com.eouw0o83hf.synaesthetic" => "match AppStore com.eouw0o83hf.synaesthetic"
         }
       }
     )
 
     upload_to_app_store(
       api_key: api_key,
-      ipa: "build/__APP_NAME__.ipa",
+      ipa: "build/Synaesthetic.ipa",
       submit_for_review: true,
       automatic_release: false,
       force: true,
@@ -156,7 +156,7 @@ platform :ios do
     clean_build_artifacts
     commit_version_bump(
       message: "chore: bump build number [ci skip]",
-      xcodeproj: "App/__APP_NAME__.xcodeproj",
+      xcodeproj: "App/Synaesthetic.xcodeproj",
       force: true
     )
   end
@@ -166,8 +166,8 @@ platform :ios do
   desc "Generate App Store screenshots"
   lane :screenshots do
     capture_screenshots(
-      project: "App/__APP_NAME__.xcodeproj",
-      scheme: "__APP_NAME__UITests",
+      project: "App/Synaesthetic.xcodeproj",
+      scheme: "SynaestheticUITests",
       devices: [
         "iPhone 16 Pro Max",
         "iPhone 8 Plus",
@@ -204,7 +204,7 @@ platform :ios do
     api_key = app_store_connect_api_key_from_env
     download_dsyms(
       api_key: api_key,
-      app_identifier: "__BUNDLE_ID__",
+      app_identifier: "com.eouw0o83hf.synaesthetic",
       version: "latest",
       output_directory: "dSYMs"
     )

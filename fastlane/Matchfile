@@ -14,7 +14,7 @@
 git_url ENV.fetch("MATCH_GIT_URL", "")
 storage_mode "git"
 
-app_identifier ["__BUNDLE_ID__"]
+app_identifier ["com.eouw0o83hf.synaesthetic"]
 username ENV.fetch("APPLE_ID", "")
 team_id ENV.fetch("APPLE_TEAM_ID", "")
 

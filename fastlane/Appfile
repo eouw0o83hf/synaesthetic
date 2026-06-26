@@ -4,7 +4,7 @@
 #
 # To set up: cp fastlane/.env.template fastlane/.env  →  fill in values
 
-app_identifier "__BUNDLE_ID__"
+app_identifier "com.eouw0o83hf.synaesthetic"
 apple_id ENV.fetch("APPLE_ID", "")
 team_id ENV.fetch("APPLE_TEAM_ID", "")
 

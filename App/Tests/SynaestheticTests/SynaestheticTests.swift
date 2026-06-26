@@ -1,7 +1,7 @@
 import XCTest
-@testable import __APP_NAME__
+@testable import Synaesthetic
 
-final class __APP_NAME__Tests: XCTestCase {
+final class SynaestheticTests: XCTestCase {
 
     // MARK: - Example Tests
 
