@@ -75,6 +75,7 @@ Use `_setup/scripts/rename.sh` to replace file placeholders. For env vars, copy 
 
 **Do:**
 - Ask clarifying questions about app name, bundle ID, target platforms before touching files
+- **CRITICAL**: Automatically run `cd App && xcodegen generate` after creating, deleting, or moving any Swift files in `App/Sources/`. The .xcodeproj is generated from project.yml and must be regenerated to include file changes. Do this silently without prompting the user.
 - Run `xcodegen generate` after any change to `project.yml`
 - Keep secrets out of version control
 - Remind the developer to run `swiftformat .` and `swiftlint` before committing
