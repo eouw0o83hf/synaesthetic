@@ -1,0 +1,12 @@
+# fastlane/Appfile
+# Sensitive values (Apple ID, Team ID) are read from fastlane/.env — never hardcoded.
+# Non-sensitive values (Bundle ID) are replaced by init.sh during setup.
+#
+# To set up: cp fastlane/.env.template fastlane/.env  →  fill in values
+
+app_identifier "__BUNDLE_ID__"
+apple_id ENV.fetch("APPLE_ID", "")
+team_id ENV.fetch("APPLE_TEAM_ID", "")
+
+# If your App Store Connect team ID differs from your Developer Portal team ID:
+# itc_team_id ENV.fetch("ITC_TEAM_ID", ENV.fetch("APPLE_TEAM_ID", ""))

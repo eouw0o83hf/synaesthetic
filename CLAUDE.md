@@ -1,0 +1,156 @@
+# CLAUDE.md — App Template Root
+
+You are helping a developer use this repository as a template to build and ship an iOS or macOS app. This file gives you the lay of the land; `_setup/CLAUDE.md` has detailed step-by-step agent instructions.
+
+## Known Issues & Lessons Learned
+
+Before starting, read `_setup/LESSONS.md`. It documents every issue discovered during real use of this template — broken scripts, missing prerequisites, fastlane quirks, and the recommended setup flow. Following it will save you from repeating solved problems.
+
+When you hit a new issue or deviation during setup, document it in `_setup/LESSONS.md` using the same format (symptom → root cause → fix applied → suggested template improvement).
+
+## What This Repo Is
+
+A fill-in-the-blank template for Swift/SwiftUI apps targeting iOS 17+ and/or macOS 14+. The developer using it has varying levels of iOS experience — read the checklist and their questions carefully to calibrate your explanations.
+
+## Placeholders to Replace
+
+There are two categories: **file placeholders** (replaced by `rename.sh` in committed files) and **env vars** (written to `fastlane/.env` only — never committed).
+
+### File Placeholders — replaced in committed files
+
+| Token | Meaning |
+|---|---|
+| `__APP_NAME__` | PascalCase target name (no spaces). Used as Xcode target and Swift type prefix. Example: `WeatherNow` |
+| `__APP_DISPLAY_NAME__` | Human display name shown on device. Example: `Weather Now` |
+| `__APP_NAME_INITIAL__` | First letter of `__APP_NAME__`, used in placeholder icon and docs |
+| `__BUNDLE_ID__` | Full reverse-DNS bundle ID. Example: `com.acme.weathernow` |
+| `__ORG_IDENTIFIER__` | Bundle ID prefix only. Example: `com.acme` |
+| `__TEAM_ID__` | 10-char Apple Developer Team ID. Example: `ABCD123456`. Used in `project.yml` (DEVELOPMENT_TEAM) and `ExportOptions.plist`. |
+| `__YEAR__` | Four-digit current year |
+| `__GH_USERNAME__` | GitHub username or org (used in GitHub Pages URLs) |
+| `__APP_REPO_NAME__` | GitHub repo slug (used in GitHub Pages URLs) |
+| `__SUPPORT_URL__` | Full support page URL, e.g. `https://user.github.io/myapp/support` |
+| `__PRIVACY_URL__` | Full privacy policy URL, e.g. `https://user.github.io/myapp/privacy` |
+| `__CONTACT_EMAIL__` | Public-facing support email shown on the support page |
+| `__APP_STORE_URL__` | App Store link (fill in after publishing) |
+| `__PRIVACY_LAST_UPDATED__` | Date the privacy policy was last updated |
+| `__DEVELOPER_NAME__` | Developer/company name shown in privacy policy |
+
+### Personal Info — goes in `fastlane/.env` only, never committed
+
+| Env Var | Meaning |
+|---|---|
+| `APPLE_ID` | Apple ID email for App Store Connect authentication |
+| `APPLE_TEAM_ID` | 10-char Apple Developer Team ID |
+| `MATCH_GIT_URL` | SSH URL to the private certs repo for fastlane match |
+| `MATCH_PASSWORD` | Passphrase to encrypt/decrypt the match certs repo |
+| `APP_STORE_CONNECT_API_KEY_ID` | API key ID from App Store Connect |
+| `APP_STORE_CONNECT_API_KEY_ISSUER_ID` | API key issuer ID |
+| `APP_STORE_CONNECT_API_KEY_PATH` | Local path to the `.p8` key file |
+| `APP_STORE_CONNECT_API_KEY_CONTENT` | Base64-encoded `.p8` contents (for CI) |
+
+Use `_setup/scripts/rename.sh` to replace file placeholders. For env vars, copy `fastlane/.env.template` → `fastlane/.env` and fill in the values. `init.sh` does both automatically.
+
+## Key Files to Know
+
+- `_setup/CHECKLIST.md` — master checklist; tick items off as you go
+- `_setup/CLAUDE.md` — detailed agent instructions for each setup phase
+- `App/project.yml` — XcodeGen project definition; edit this first before generating .xcodeproj
+- `fastlane/Fastfile` — all automation lanes
+- `.github/workflows/ci.yml` — PR build + test
+- `.github/workflows/release.yml` — TestFlight release on git tag
+
+## Workflow Overview
+
+1. **Init** — run `_setup/scripts/init.sh` (creates repo, fills placeholders, generates project, sets up .env, enables Pages)
+2. **Fill secrets** — open `fastlane/.env` and fill in MATCH_PASSWORD and App Store Connect API key values
+3. **Open** — open `App/__APP_NAME__.xcodeproj` in Xcode and build/run
+4. **Configure signing** — run `bundle exec fastlane match development` to pull/create certs
+5. **Customize docs/** — edit `docs/support.html` and `docs/privacy.html` with real content
+6. **Test on device** — select real device in Xcode, ⌘R
+7. **Submit to TestFlight** — `bundle exec fastlane beta`
+8. **Submit to App Store** — `bundle exec fastlane release`
+
+## What You Should and Shouldn't Do
+
+**Do:**
+- Ask clarifying questions about app name, bundle ID, target platforms before touching files
+- Run `xcodegen generate` after any change to `project.yml`
+- Keep secrets out of version control
+- Remind the developer to run `swiftformat .` and `swiftlint` before committing
+- Open the simulator with `xcrun simctl boot "iPhone 16 Pro"` when testing UI changes
+- Check `_setup/CHECKLIST.md` to know what phase the developer is in
+
+**Don't:**
+- Commit `*.xcodeproj` or `*.xcworkspace` (generated by XcodeGen, excluded in .gitignore)
+- Hard-code the Apple ID, Team ID, or passwords anywhere
+- Modify `fastlane/report.xml`, `fastlane/Preview.html`, or screenshot PNGs (gitignored)
+- Run `fastlane release` without explicit developer confirmation
+
+## Useful Commands
+
+```bash
+# Run the full setup wizard (do this first)
+./_setup/scripts/init.sh
+
+# Create a GitHub repo (if not done by init.sh)
+gh repo create USERNAME/REPONAME --public --source=. --remote=origin --push
+
+# Create the private certs repo for fastlane match
+gh repo create USERNAME/APPNAME-certs --private
+
+# Enable GitHub Pages for docs/ folder
+gh api repos/USERNAME/REPONAME/pages --method POST \
+  -f source='{"branch":"main","path":"/docs"}'
+
+# Copy .env template and fill in secrets
+cp fastlane/.env.template fastlane/.env && $EDITOR fastlane/.env
+
+# Generate Xcode project from project.yml
+cd App && xcodegen generate
+
+# Build for simulator (headless)
+xcodebuild -project App/__APP_NAME__.xcodeproj \
+  -scheme __APP_NAME__ \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  build
+
+# Run tests headless
+xcodebuild test \
+  -project App/__APP_NAME__.xcodeproj \
+  -scheme __APP_NAME__ \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -resultBundlePath TestResults.xcresult
+
+# List available simulators
+xcrun simctl list devices available
+
+# Boot a simulator
+xcrun simctl boot "iPhone 16 Pro"
+
+# Open simulator app
+open -a Simulator
+
+# Format code
+swiftformat App/Sources
+
+# Lint
+swiftlint App/Sources
+
+# Install fastlane gems
+bundle install
+
+# Fastlane lanes
+bundle exec fastlane test         # Run tests via fastlane
+bundle exec fastlane beta         # Build + upload to TestFlight
+bundle exec fastlane release      # Submit to App Store
+bundle exec fastlane screenshots  # Generate App Store screenshots
+```
+
+## Platform Targets
+
+This template defaults to **iOS 17.0+**. To add macOS support, edit `App/project.yml` and add a macOS target. See [_setup/guides/02-xcode-project.md](_setup/guides/02-xcode-project.md) for details on multiplatform configuration.
+
+## When Something Is Unclear
+
+Read `_setup/CHECKLIST.md` first to understand what phase the developer is in. Then consult the relevant guide in `_setup/guides/`. If still unclear, ask the developer directly — don't guess at bundle IDs or team IDs.

@@ -1,0 +1,22 @@
+# fastlane/Matchfile
+# Manages code signing via a private git repo.
+# All sensitive values read from fastlane/.env — never hardcoded.
+#
+# First-time setup:
+#   bundle exec fastlane match init       (creates the certs repo structure)
+#   bundle exec fastlane match development
+#   bundle exec fastlane match appstore
+#
+# Read-only (CI or other team members):
+#   bundle exec fastlane match development --readonly
+#   bundle exec fastlane match appstore --readonly
+
+git_url ENV.fetch("MATCH_GIT_URL", "")
+storage_mode "git"
+
+app_identifier ["__BUNDLE_ID__"]
+username ENV.fetch("APPLE_ID", "")
+team_id ENV.fetch("APPLE_TEAM_ID", "")
+
+# Platform: ios, macos, tvos, watchos
+platform "ios"
