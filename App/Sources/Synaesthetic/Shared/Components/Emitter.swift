@@ -29,12 +29,6 @@ struct Emitter: View {
     /// Tracks the last drag time for velocity calculation.
     @State private var lastDragTime: Date?
 
-    /// Tracks whether the touch is stationary (for braking) or moving (for acceleration).
-    @State private var isStationary: Bool = false
-
-    /// Timer for applying braking force during stationary touch.
-    @State private var brakingTimer: Timer?
-
     /// Audio engine for sound generation.
     @State private var audioEngine: AVAudioEngine?
 
@@ -194,7 +188,7 @@ struct Emitter: View {
         }
     }
 
-    /// Handles drag gesture changes to detect swipes and apply acceleration or braking.
+    /// Handles drag gesture changes to apply acceleration based on swipe.
     private func handleDragChanged(value: DragGesture.Value, geometry: GeometryProxy) {
         let currentTime = Date()
         let currentPosition = value.location
@@ -202,72 +196,30 @@ struct Emitter: View {
         // Calculate movement since last position
         if let lastPos = lastDragPosition, let lastTime = lastDragTime {
             let deltaTime = currentTime.timeIntervalSince(lastTime)
-            let distance = hypot(currentPosition.x - lastPos.x, currentPosition.y - lastPos.y)
-            let speed = distance / deltaTime
-
-            // Determine if touch is stationary (speed below threshold)
-            let stationaryThreshold: CGFloat = 100 // points per second
-            if speed < stationaryThreshold {
-                if !isStationary {
-                    isStationary = true
-                    startBraking()
-                }
-            } else {
-                // Touch is moving - directly control velocity from finger movement
-                if isStationary {
-                    isStationary = false
-                    stopBraking()
-                }
-
-                let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                updateVelocityFromSwipe(
-                    from: lastPos,
-                    to: currentPosition,
-                    center: center,
-                    deltaTime: deltaTime
-                )
-            }
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            updateVelocityFromSwipe(
+                from: lastPos,
+                to: currentPosition,
+                center: center,
+                deltaTime: deltaTime
+            )
         }
 
         lastDragPosition = currentPosition
         lastDragTime = currentTime
     }
 
-    /// Handles drag gesture end to stop braking.
+    /// Handles drag gesture end to clean up tracking.
     private func handleDragEnded(value: DragGesture.Value, geometry: GeometryProxy) {
         lastDragPosition = nil
         lastDragTime = nil
-        isStationary = false
-        stopBraking()
     }
 
-    /// Starts applying braking force to slow down velocity.
-    private func startBraking() {
-        stopBraking() // Clear any existing timer
 
-        // Apply braking at 60fps
-        brakingTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
-            // Braking force: reduce velocity by a percentage per frame
-            // Using exponential decay: v_new = v_old * (1 - brakingRate)
-            // Higher rate = more aggressive braking. 0.25 provides strong braking even with light touch
-            let brakingRate: CGFloat = 0.25
-            velocity *= (1 - brakingRate)
 
-            // Stop completely if velocity is very small
-            if abs(velocity) < 0.01 {
-                velocity = 0
-                stopBraking()
-            }
-        }
-    }
-
-    /// Stops the braking timer.
-    private func stopBraking() {
-        brakingTimer?.invalidate()
-        brakingTimer = nil
-    }
-
-    /// Updates velocity to match the swipe movement, giving direct control like dragging a record.
+    /// Updates velocity by applying swipe speed as angular acceleration.
+    /// Swipe velocity controls the rate of change of the emitter's angular velocity,
+    /// keeping continuous motion while small swipes create small velocity changes.
     private func updateVelocityFromSwipe(from: CGPoint, to: CGPoint, center: CGPoint, deltaTime: TimeInterval) {
         // Vector from center to touch point (average of from and to)
         let midPoint = CGPoint(x: (from.x + to.x) / 2, y: (from.y + to.y) / 2)
@@ -289,15 +241,17 @@ struct Emitter: View {
         // Project velocity vector onto tangential direction (dot product)
         let tangentialSpeed = velocityVector.x * tangentialDir.x + velocityVector.y * tangentialDir.y
 
-        // Convert tangential speed to angular velocity (radians per second)
-        let angularVelocity = tangentialSpeed / radius
+        // Convert tangential speed to angular acceleration (radians per second²)
+        let angularAcceleration = tangentialSpeed / radius
 
-        // Directly set velocity to match finger movement (with smoothing to prevent jitter)
-        let smoothingFactor: CGFloat = 0.3 // Higher = more responsive, lower = smoother
-        let newVelocity = velocity * (1 - smoothingFactor) + angularVelocity * smoothingFactor
-        
+        // Apply swipe speed as acceleration to the current velocity
+        // Scale factor controls responsiveness to swipe
+        let accelerationScale: CGFloat = 0.5
+        let acceleration = angularAcceleration * accelerationScale
+        velocity += acceleration * CGFloat(deltaTime)
+
         // Cap velocity at maximum of 25
-        velocity = max(-25, min(25, newVelocity))
+        velocity = max(-25, min(25, velocity))
     }
 }
 
