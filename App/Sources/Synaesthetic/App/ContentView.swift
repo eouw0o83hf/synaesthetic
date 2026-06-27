@@ -4,7 +4,7 @@ struct ContentView: View {
     @State private var emitters: [EmitterConfig] = []
 
     struct EmitterConfig {
-        let radiusPercent: CGFloat
+        let radius: CGFloat
         let color: Color
         let highlightColor: Color
         let initialVelocity: CGFloat
@@ -22,7 +22,7 @@ struct ContentView: View {
                     ForEach(0..<emitters.count, id: \.self) { index in
                         let config = emitters[index]
                         Emitter(
-                            radiusPercent: config.radiusPercent,
+                            radius: config.radius,
                             color: config.color,
                             highlightColor: config.highlightColor,
                             initialVelocity: config.initialVelocity
@@ -55,7 +55,7 @@ struct ContentView: View {
         for index in 0..<3 {
             let size = CGFloat.random(in: 150...280)
             let (baseColor, highlightColor) = colors[index]
-            
+
             // Try to find a non-overlapping position
             var position: CGPoint?
             var attempts = 0
@@ -63,14 +63,14 @@ struct ContentView: View {
 
             while position == nil && attempts < maxAttempts {
                 let candidatePosition = randomScreenPosition(excludingSize: size, screenBounds: screenBounds)
-                
+
                 // Check if this position overlaps with any existing emitters
                 let overlaps = configs.contains { config in
                     let distance = hypot(candidatePosition.x - config.position.x, candidatePosition.y - config.position.y)
                     let minDistance = (size + config.size) / 2 + 10 // 10pt padding between circles
                     return distance < minDistance
                 }
-                
+
                 if !overlaps {
                     position = candidatePosition
                 }
@@ -83,7 +83,7 @@ struct ContentView: View {
             }
 
             configs.append(EmitterConfig(
-                radiusPercent: CGFloat.random(in: 0.2...0.35),
+                radius: size * CGFloat.random(in: 0.2...0.35),
                 color: baseColor,
                 highlightColor: highlightColor,
                 initialVelocity: shuffledVelocities[index],

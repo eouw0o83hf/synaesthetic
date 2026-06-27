@@ -7,15 +7,15 @@ final class EmitterTests: XCTestCase {
     // MARK: - Emitter Tests
 
     func test_emitter_renders_with_default_radius() {
-        let emitter = Emitter(radiusPercent: 0.3, color: .red, highlightColor: .orange)
+        let emitter = Emitter(radius: 30, color: .red, highlightColor: .orange)
         XCTAssertNotNil(emitter.body)
     }
 
     func test_emitter_accepts_various_radius_percentages() {
-        let radiusPercentages: [CGFloat] = [0.1, 0.3, 0.5, 0.9]
+        let radii: [CGFloat] = [10, 30, 50, 90]
 
-        for percent in radiusPercentages {
-            let emitter = Emitter(radiusPercent: percent, color: .red, highlightColor: .orange)
+        for radius in radii {
+            let emitter = Emitter(radius: radius, color: .red, highlightColor: .orange)
             XCTAssertNotNil(emitter.body)
         }
     }
@@ -29,28 +29,25 @@ final class EmitterTests: XCTestCase {
         ]
 
         for (color, highlight) in colorCombinations {
-            let emitter = Emitter(radiusPercent: 0.3, color: color, highlightColor: highlight)
+            let emitter = Emitter(radius: 30, color: color, highlightColor: highlight)
             XCTAssertNotNil(emitter.body)
         }
     }
 
     func test_emitter_diameter_calculation() {
-        let emitter = Emitter(radiusPercent: 0.3, color: .red, highlightColor: .orange)
+        let radius: CGFloat = 30
+        let emitter = Emitter(radius: radius, color: .red, highlightColor: .orange)
 
-        let mockGeometry = MockGeometryProxy(width: 100, height: 100)
-        let expectedDiameter = 60.0 // 100 * 0.3 * 2
+        let expectedDiameter = 60.0 // radius * 2
 
-        let actualDiameter = mockGeometry.size.width * 0.3 * 2
-        XCTAssertEqual(actualDiameter, expectedDiameter)
+        XCTAssertEqual(expectedDiameter, 60.0)
     }
 
-    func test_emitter_uses_smaller_dimension() {
-        let mockGeometry = MockGeometryProxy(width: 200, height: 100)
-        let minDimension = min(mockGeometry.size.width, mockGeometry.size.height)
+    func test_emitter_diameter_from_radius() {
+        let radius: CGFloat = 50
+        let expectedDiameter = radius * 2
 
-        XCTAssertEqual(minDimension, 100)
-        let diameter = minDimension * 0.3 * 2
-        XCTAssertEqual(diameter, 60.0)
+        XCTAssertEqual(expectedDiameter, 100.0)
     }
 }
 

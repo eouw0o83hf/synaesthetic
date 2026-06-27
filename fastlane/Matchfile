@@ -1,22 +1,13 @@
-# fastlane/Matchfile
-# Manages code signing via a private git repo.
-# All sensitive values read from fastlane/.env — never hardcoded.
-#
-# First-time setup:
-#   bundle exec fastlane match init       (creates the certs repo structure)
-#   bundle exec fastlane match development
-#   bundle exec fastlane match appstore
-#
-# Read-only (CI or other team members):
-#   bundle exec fastlane match development --readonly
-#   bundle exec fastlane match appstore --readonly
+git_url("git@github.com:eouw0o83hf/synaesthetic-signing.git")
 
-git_url ENV.fetch("MATCH_GIT_URL", "")
-storage_mode "git"
+storage_mode("git")
 
-app_identifier ["com.eouw0o83hf.synaesthetic"]
-username ENV.fetch("APPLE_ID", "")
-team_id ENV.fetch("APPLE_TEAM_ID", "")
+type("development") # The default type, can be: appstore, adhoc, enterprise or development
 
-# Platform: ios, macos, tvos, watchos
-platform "ios"
+# app_identifier(["tools.fastlane.app", "tools.fastlane.app2"])
+# username("user@fastlane.tools") # Your Apple Developer Portal username
+
+# For all available options run `fastlane match --help`
+# Remove the # in the beginning of the line to enable the other options
+
+# The docs are available on https://docs.fastlane.tools/actions/match

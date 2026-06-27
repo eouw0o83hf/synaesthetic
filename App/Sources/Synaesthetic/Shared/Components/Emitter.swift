@@ -2,11 +2,10 @@ import SwiftUI
 import AVFoundation
 
 /// A circle with an angular gradient that wraps around with a sharp radial edge.
-/// The radius is a percentage of the smaller screen dimension.
 /// The emitter rotates continuously at a velocity measured in radians per second.
 struct Emitter: View {
-    /// The radius as a percentage of the smaller screen dimension (0.0 to 1.0).
-    let radiusPercent: CGFloat
+    /// The radius in pixels.
+    let radius: CGFloat
 
     /// The starting color of the gradient.
     let color: Color
@@ -39,12 +38,12 @@ struct Emitter: View {
     @State private var phase: Double = 0
 
     init(
-        radiusPercent: CGFloat,
+        radius: CGFloat,
         color: Color,
         highlightColor: Color,
         initialVelocity: CGFloat = 1
     ) {
-        self.radiusPercent = radiusPercent
+        self.radius = radius
         self.color = color
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
@@ -88,10 +87,9 @@ struct Emitter: View {
         }
     }
 
-    /// Calculates the diameter (2x radius) based on the radius percentage.
+    /// Calculates the diameter (2x radius) in pixels.
     private func calculateDiameter(for geometry: GeometryProxy) -> CGFloat {
-        let minDimension = min(geometry.size.width, geometry.size.height)
-        return minDimension * radiusPercent * 2
+        return radius * 2
     }
 
     /// Starts the continuous rotation animation based on velocity.
@@ -257,7 +255,7 @@ struct Emitter: View {
 
 #Preview {
     Emitter(
-        radiusPercent: 0.3,
+        radius: 50,
         color: .red,
         highlightColor: .orange
     )
