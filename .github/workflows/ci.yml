@@ -75,7 +75,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: bundle exec fastlane sync_dev_signing
 
-      - name: Run tests
+      - name: Run unit tests
         run: bundle exec fastlane test
 
       - name: Upload test results
