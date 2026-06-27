@@ -9,7 +9,7 @@ struct ContentView: View {
         let highlightColor: Color
         let initialVelocity: CGFloat
         let size: CGFloat
-        let position: CGPoint
+        var position: CGPoint
     }
 
     var body: some View {
@@ -25,10 +25,11 @@ struct ContentView: View {
                             radius: config.radius,
                             color: config.color,
                             highlightColor: config.highlightColor,
-                            initialVelocity: config.initialVelocity
+                            initialVelocity: config.initialVelocity,
+                            position: $emitters[index].position
                         )
                         .frame(width: config.size, height: config.size)
-                        .position(config.position)
+                        .position(emitters[index].position)
                     }
                 }
             }
@@ -53,7 +54,8 @@ struct ContentView: View {
         let screenBounds = UIScreen.main.bounds
 
         for index in 0..<3 {
-            let size = CGFloat.random(in: 150...280)
+            let minSize = Emitter.centerDotRadius * 2
+            let size = max(minSize, CGFloat.random(in: 150...280))
             let (baseColor, highlightColor) = colors[index]
 
             // Try to find a non-overlapping position

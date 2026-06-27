@@ -1,9 +1,16 @@
 import SwiftUI
 import AVFoundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// A circle with an angular gradient that wraps around with a sharp radial edge.
 /// The emitter rotates continuously at a velocity measured in radians per second.
 struct Emitter: View {
+    /// Radius of the solid center dot used to reposition the emitter. The emitter's
+    /// frame will never shrink below this dot's diameter.
+    static let centerDotRadius: CGFloat = 15
+
     /// The radius in pixels.
     let radius: CGFloat
 
@@ -16,6 +23,9 @@ struct Emitter: View {
     /// The initial velocity in radians per second. Defaults to 1.
     let initialVelocity: CGFloat
 
+    /// The emitter's position on screen. Updated while repositioning.
+    @Binding var position: CGPoint
+
     /// The current rotational velocity in radians per second.
     @State var velocity: CGFloat
 
@@ -27,6 +37,15 @@ struct Emitter: View {
 
     /// Tracks the last drag time for velocity calculation.
     @State private var lastDragTime: Date?
+
+    /// Whether the user is currently repositioning the emitter via the center dot.
+    @State private var isRepositioning: Bool = false
+
+    /// Scale factor applied to the center dot for the pulse animation.
+    @State private var pulseScale: CGFloat = 1.0
+
+    /// Position captured at the moment repositioning starts.
+    @State private var repositionStartPosition: CGPoint = .zero
 
     /// Audio engine for sound generation.
     @State private var audioEngine: AVAudioEngine?
@@ -41,12 +60,14 @@ struct Emitter: View {
         radius: CGFloat,
         color: Color,
         highlightColor: Color,
-        initialVelocity: CGFloat = 1
+        initialVelocity: CGFloat = 1,
+        position: Binding<CGPoint> = .constant(.zero)
     ) {
         self.radius = radius
         self.color = color
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
+        self._position = position
         self._velocity = State(initialValue: initialVelocity)
     }
 
@@ -65,6 +86,13 @@ struct Emitter: View {
                         height: calculateDiameter(for: geometry)
                     )
                     .rotationEffect(.radians(rotation))
+                    .scaleEffect(pulseScale)
+
+                Circle()
+                    .fill(color)
+                    .frame(width: Emitter.centerDotRadius * 2, height: Emitter.centerDotRadius * 2)
+                    .scaleEffect(pulseScale)
+                    .gesture(repositionGesture)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .gesture(
@@ -77,6 +105,7 @@ struct Emitter: View {
                     }
             )
         }
+        .frame(minWidth: Emitter.centerDotRadius * 2, minHeight: Emitter.centerDotRadius * 2)
         .onAppear {
             startRotation()
             setupAudio()
@@ -188,6 +217,7 @@ struct Emitter: View {
 
     /// Handles drag gesture changes to apply acceleration based on swipe.
     private func handleDragChanged(value: DragGesture.Value, geometry: GeometryProxy) {
+        guard !isRepositioning else { return }
         let currentTime = Date()
         let currentPosition = value.location
 
@@ -211,6 +241,60 @@ struct Emitter: View {
     private func handleDragEnded(value: DragGesture.Value, geometry: GeometryProxy) {
         lastDragPosition = nil
         lastDragTime = nil
+    }
+
+    /// Gesture: long-press the center dot to enter repositioning mode, then drag to move.
+    private var repositionGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.3)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    if !isRepositioning {
+                        beginReposition()
+                    }
+                case .second(true, let drag):
+                    if !isRepositioning {
+                        beginReposition()
+                    }
+                    if let drag = drag {
+                        position = CGPoint(
+                            x: repositionStartPosition.x + drag.translation.width,
+                            y: repositionStartPosition.y + drag.translation.height
+                        )
+                    }
+                default:
+                    break
+                }
+            }
+            .onEnded { _ in
+                endReposition()
+            }
+    }
+
+    /// Enters repositioning mode: captures starting position, fires haptic, briefly pulses
+    /// the emitter outward, then settles back to its normal size for the drag.
+    private func beginReposition() {
+        isRepositioning = true
+        repositionStartPosition = position
+        #if canImport(UIKit)
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        #endif
+        withAnimation(.easeOut(duration: 0.15)) {
+            pulseScale = 1.25
+        }
+        withAnimation(.easeIn(duration: 0.25).delay(0.15)) {
+            pulseScale = 1.0
+        }
+    }
+
+    /// Exits repositioning mode and returns the center dot to its resting scale.
+    private func endReposition() {
+        isRepositioning = false
+        withAnimation(.easeInOut(duration: 0.2)) {
+            pulseScale = 1.0
+        }
     }
 
 
