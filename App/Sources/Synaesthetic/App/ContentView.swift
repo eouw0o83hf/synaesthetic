@@ -54,7 +54,7 @@ struct ContentView: View {
         let screenBounds = UIScreen.main.bounds
 
         for index in 0..<3 {
-            let minSize = Emitter.centerDotRadius * 2
+            let minSize = Emitter.handleRadius * 2
             let size = max(minSize, CGFloat.random(in: 150...280))
             let (baseColor, highlightColor) = colors[index]
 

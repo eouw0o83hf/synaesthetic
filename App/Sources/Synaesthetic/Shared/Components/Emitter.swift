@@ -7,9 +7,9 @@ import UIKit
 /// A circle with an angular gradient that wraps around with a sharp radial edge.
 /// The emitter rotates continuously at a velocity measured in radians per second.
 struct Emitter: View {
-    /// Radius of the solid center dot used to reposition the emitter. The emitter's
-    /// frame will never shrink below this dot's diameter.
-    static let centerDotRadius: CGFloat = 15
+    /// Radius of the handle (solid center circle) used to reposition the emitter. The emitter's
+    /// frame will never shrink below this handle's diameter.
+    static let handleRadius: CGFloat = 15
 
     /// The radius in pixels.
     let radius: CGFloat
@@ -38,14 +38,20 @@ struct Emitter: View {
     /// Tracks the last drag time for velocity calculation.
     @State private var lastDragTime: Date?
 
-    /// Whether the user is currently repositioning the emitter via the center dot.
+    /// Whether the user is currently repositioning the emitter via the handle.
     @State private var isRepositioning: Bool = false
 
-    /// Scale factor applied to the center dot for the pulse animation.
+    /// Scale factor applied to the handle for the pulse animation.
     @State private var pulseScale: CGFloat = 1.0
 
     /// Position captured at the moment repositioning starts.
     @State private var repositionStartPosition: CGPoint = .zero
+
+    /// Global touch location at the moment the handle drag began.
+    @State private var touchStartLocation: CGPoint = .zero
+
+    /// Timer that fires to recognize a long press on the handle.
+    @State private var longPressTimer: Timer? = nil
 
     /// Audio engine for sound generation.
     @State private var audioEngine: AVAudioEngine?
@@ -90,7 +96,7 @@ struct Emitter: View {
 
                 Circle()
                     .fill(color)
-                    .frame(width: Emitter.centerDotRadius * 2, height: Emitter.centerDotRadius * 2)
+                    .frame(width: Emitter.handleRadius * 2, height: Emitter.handleRadius * 2)
                     .scaleEffect(pulseScale)
                     .gesture(repositionGesture)
             }
@@ -105,7 +111,7 @@ struct Emitter: View {
                     }
             )
         }
-        .frame(minWidth: Emitter.centerDotRadius * 2, minHeight: Emitter.centerDotRadius * 2)
+        .frame(minWidth: Emitter.handleRadius * 2, minHeight: Emitter.handleRadius * 2)
         .onAppear {
             startRotation()
             setupAudio()
@@ -243,32 +249,30 @@ struct Emitter: View {
         lastDragTime = nil
     }
 
-    /// Gesture: long-press the center dot to enter repositioning mode, then drag to move.
+    /// Gesture: drag on the handle starts a long-press timer. Once the timer fires (0.3s),
+    /// repositioning mode activates and the emitter follows the finger for the rest of the drag.
     private var repositionGesture: some Gesture {
-        LongPressGesture(minimumDuration: 0.3)
-            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
-                switch value {
-                case .first(true):
-                    if !isRepositioning {
+                if longPressTimer == nil && !isRepositioning {
+                    touchStartLocation = value.startLocation
+                    longPressTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
                         beginReposition()
                     }
-                case .second(true, let drag):
-                    if !isRepositioning {
-                        beginReposition()
-                    }
-                    if let drag = drag {
-                        position = CGPoint(
-                            x: repositionStartPosition.x + drag.translation.width,
-                            y: repositionStartPosition.y + drag.translation.height
-                        )
-                    }
-                default:
-                    break
+                }
+                if isRepositioning {
+                    position = CGPoint(
+                        x: repositionStartPosition.x + value.translation.width,
+                        y: repositionStartPosition.y + value.translation.height
+                    )
                 }
             }
             .onEnded { _ in
-                endReposition()
+                longPressTimer?.invalidate()
+                longPressTimer = nil
+                if isRepositioning {
+                    endReposition()
+                }
             }
     }
 
@@ -281,15 +285,15 @@ struct Emitter: View {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         #endif
-        withAnimation(.easeOut(duration: 0.15)) {
+        withAnimation(.easeOut(duration: 0.075)) {
             pulseScale = 1.25
         }
-        withAnimation(.easeIn(duration: 0.25).delay(0.15)) {
+        withAnimation(.easeIn(duration: 0.125).delay(0.075)) {
             pulseScale = 1.0
         }
     }
 
-    /// Exits repositioning mode and returns the center dot to its resting scale.
+    /// Exits repositioning mode and returns the handle to its resting scale.
     private func endReposition() {
         isRepositioning = false
         withAnimation(.easeInOut(duration: 0.2)) {
