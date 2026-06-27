@@ -1,59 +1,96 @@
-# fastlane
+fastlane documentation
+----
 
-fastlane automates building, testing, and releasing your app.
+# Installation
 
-## Setup
+Make sure you have the latest version of the Xcode command line tools installed:
 
-```bash
-bundle install
+```sh
+xcode-select --install
 ```
 
-Set environment variables (or create `fastlane/.env`):
+For _fastlane_ installation instructions, see [Installing _fastlane_](https://docs.fastlane.tools/#installing-fastlane)
 
-```bash
-MATCH_PASSWORD=your_match_passphrase
-APP_STORE_CONNECT_API_KEY_ID=XXXXXXXXXX
-APP_STORE_CONNECT_API_KEY_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-APP_STORE_CONNECT_API_KEY_CONTENT=LS0tLS1CRUdJTi4uLg==  # base64 .p8 contents
+# Available Actions
+
+## iOS
+
+### ios sync_dev_signing
+
+```sh
+[bundle exec] fastlane ios sync_dev_signing
 ```
 
-## Available Lanes
+Sync development code signing
 
-| Lane | Command | Description |
-|---|---|---|
-| `test` | `bundle exec fastlane test` | Run all unit and UI tests |
-| `sync_dev_signing` | `bundle exec fastlane sync_dev_signing` | Pull development certs via match |
-| `sync_release_signing` | `bundle exec fastlane sync_release_signing` | Pull App Store certs via match |
-| `beta` | `bundle exec fastlane beta` | Build + upload to TestFlight |
-| `release` | `bundle exec fastlane release` | Build + submit to App Store |
-| `screenshots` | `bundle exec fastlane screenshots` | Generate App Store screenshots |
-| `upload_screenshots` | `bundle exec fastlane upload_screenshots` | Upload screenshots to App Store Connect |
-| `download_dsyms` | `bundle exec fastlane download_dsyms` | Download dSYMs for crash symbolication |
-| `rotate_certs` | `bundle exec fastlane rotate_certs` | Revoke and recreate all certificates |
+### ios sync_release_signing
 
-## Files
-
-| File | Purpose |
-|---|---|
-| `Fastfile` | Lane definitions |
-| `Appfile` | Default app identifier and Apple ID |
-| `Matchfile` | Code signing configuration |
-| `Deliverfile` | App Store submission defaults |
-| `.env` | Local secrets (gitignored) |
-
-## Code Signing (match)
-
-First-time setup:
-```bash
-bundle exec fastlane match init
-bundle exec fastlane match development
-bundle exec fastlane match appstore
+```sh
+[bundle exec] fastlane ios sync_release_signing
 ```
 
-Team member or CI (read-only):
-```bash
-bundle exec fastlane match development --readonly
-bundle exec fastlane match appstore --readonly
+Sync App Store code signing
+
+### ios test
+
+```sh
+[bundle exec] fastlane ios test
 ```
 
-See [../_setup/guides/07-fastlane.md](../_setup/guides/07-fastlane.md) for the full guide.
+Run all unit and UI tests
+
+### ios beta
+
+```sh
+[bundle exec] fastlane ios beta
+```
+
+Build and upload to TestFlight
+
+### ios release
+
+```sh
+[bundle exec] fastlane ios release
+```
+
+Build and submit to App Store
+
+### ios screenshots
+
+```sh
+[bundle exec] fastlane ios screenshots
+```
+
+Generate App Store screenshots
+
+### ios upload_screenshots
+
+```sh
+[bundle exec] fastlane ios upload_screenshots
+```
+
+Upload screenshots to App Store Connect (no binary upload)
+
+### ios fetch_dsyms
+
+```sh
+[bundle exec] fastlane ios fetch_dsyms
+```
+
+Download dSYMs for crash symbolication
+
+### ios rotate_certs
+
+```sh
+[bundle exec] fastlane ios rotate_certs
+```
+
+Rotate match certificates (if compromised)
+
+----
+
+This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
+
+More information about _fastlane_ can be found on [fastlane.tools](https://fastlane.tools).
+
+The documentation of _fastlane_ can be found on [docs.fastlane.tools](https://docs.fastlane.tools).
