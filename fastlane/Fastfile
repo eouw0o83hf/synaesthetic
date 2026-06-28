@@ -43,7 +43,7 @@ platform :ios do
 
   # ── Testing ───────────────────────────────────────────────────────────────
 
-  desc "Run all unit tests (excludes UI tests)"
+  desc "Run all unit tests"
   lane :test do
     run_tests(
       project: "App/Synaesthetic.xcodeproj",
@@ -53,8 +53,7 @@ platform :ios do
       result_bundle: true,
       output_directory: "fastlane/test_output",
       output_files: "report.html,report.junit",
-      fail_build: true,
-      skip_testing: "SynaestheticUITests"
+      fail_build: true
     )
   end
 
