@@ -48,7 +48,7 @@ platform :ios do
     run_tests(
       project: "App/Synaesthetic.xcodeproj",
       scheme: "Synaesthetic",
-      destination: "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest",
+      destination: "platform=iOS Simulator,name=iPhone 16 Pro",
       clean: false,
       result_bundle: true,
       output_directory: "fastlane/test_output",
