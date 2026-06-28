@@ -11,8 +11,11 @@ struct Emitter: View {
     /// frame will never shrink below this handle's diameter.
     static let handleRadius: CGFloat = 15
 
-    /// The radius in pixels.
-    let radius: CGFloat
+    /// The initial radius in pixels.
+    let initialRadius: CGFloat
+
+    /// The current radius in pixels, modified by pinch/spread gestures.
+    @State var radius: CGFloat
 
     /// The starting color of the gradient.
     let color: Color
@@ -53,6 +56,12 @@ struct Emitter: View {
     /// Timer that fires to recognize a long press on the handle.
     @State private var longPressTimer: Timer? = nil
 
+    /// Tracks the scale from the magnification gesture.
+    @State private var magnificationScale: CGFloat = 1.0
+
+    /// Base radius for magnification calculations, updated when gesture ends.
+    @State private var baseRadius: CGFloat?
+
     /// Audio engine for sound generation.
     @State private var audioEngine: AVAudioEngine?
 
@@ -69,7 +78,9 @@ struct Emitter: View {
         initialVelocity: CGFloat = 1,
         position: Binding<CGPoint> = .constant(.zero)
     ) {
-        self.radius = radius
+        self.initialRadius = radius
+        self._radius = State(initialValue: radius)
+        self._baseRadius = State(initialValue: radius)
         self.color = color
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
@@ -101,6 +112,7 @@ struct Emitter: View {
                     .gesture(repositionGesture)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .simultaneousGesture(magnificationGesture)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
@@ -171,7 +183,13 @@ struct Emitter: View {
             // Velocity is capped at 25 maximum
             let clampedVelocity = min(abs(velocity), 25.0)
             let frequency = (clampedVelocity / 25.0) * 4000.0
-            let amplitude: Float = 0.15 // Keep volume moderate
+
+            // Linear volume mapping: size beyond handle scales amplitude linearly
+            // 0px beyond handle (radius = 15) → amplitude = 0 (silent)
+            // 1px beyond handle (radius = 15.5) → amplitude ≈ 0.001 (nearly inaudible)
+            // Scales at 0.001 amplitude per pixel, capped at 0.15 (maximum)
+            let excessRadius = max(0, radius - Emitter.handleRadius)
+            let amplitude = min(Float(excessRadius * 0.001), 0.15)
 
             for frame in 0..<Int(frameCount) {
                 // Generate sine wave sample
@@ -276,6 +294,20 @@ struct Emitter: View {
             }
     }
 
+    /// Gesture: pinch to shrink, spread to expand the emitter size.
+    private var magnificationGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { scale in
+                let base = baseRadius ?? initialRadius
+                let newRadius = base * scale
+                let minRadius = Emitter.handleRadius
+                radius = max(minRadius, newRadius)
+            }
+            .onEnded { _ in
+                baseRadius = radius
+            }
+    }
+
     /// Enters repositioning mode: captures starting position, fires haptic, briefly pulses
     /// the emitter outward, then settles back to its normal size for the drag.
     private func beginReposition() {
@@ -303,16 +335,15 @@ struct Emitter: View {
 
 
 
-    /// Updates velocity by applying swipe speed as angular acceleration.
-    /// Swipe velocity controls the rate of change of the emitter's angular velocity,
-    /// keeping continuous motion while small swipes create small velocity changes.
-    private func updateVelocityFromSwipe(from: CGPoint, to: CGPoint, center: CGPoint, deltaTime: TimeInterval) {
+    /// Calculates the velocity change from a swipe gesture.
+    /// Returns the delta velocity that should be applied.
+    func calculateVelocityDelta(from: CGPoint, to: CGPoint, center: CGPoint, deltaTime: TimeInterval) -> CGFloat {
         // Vector from center to touch point (average of from and to)
         let midPoint = CGPoint(x: (from.x + to.x) / 2, y: (from.y + to.y) / 2)
         let radialVector = CGPoint(x: midPoint.x - center.x, y: midPoint.y - center.y)
         let radius = hypot(radialVector.x, radialVector.y)
 
-        guard radius > 1 else { return } // Avoid division by zero
+        guard radius > 1 else { return 0 } // Avoid division by zero
 
         // Velocity vector of the touch
         let velocityVector = CGPoint(
@@ -334,7 +365,15 @@ struct Emitter: View {
         // Scale factor controls responsiveness to swipe
         let accelerationScale: CGFloat = 0.5
         let acceleration = angularAcceleration * accelerationScale
-        velocity += acceleration * CGFloat(deltaTime)
+        return acceleration * CGFloat(deltaTime)
+    }
+
+    /// Updates velocity by applying swipe speed as angular acceleration.
+    /// Swipe velocity controls the rate of change of the emitter's angular velocity,
+    /// keeping continuous motion while small swipes create small velocity changes.
+    func updateVelocityFromSwipe(from: CGPoint, to: CGPoint, center: CGPoint, deltaTime: TimeInterval) {
+        let velocityDelta = calculateVelocityDelta(from: from, to: to, center: center, deltaTime: deltaTime)
+        velocity += velocityDelta
 
         // Cap velocity at maximum of 25
         velocity = max(-25, min(25, velocity))
