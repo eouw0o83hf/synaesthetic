@@ -75,6 +75,20 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: bundle exec fastlane sync_dev_signing
 
+      - name: Cache iOS simulator runtime
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/CoreSimulator/Volumes
+          key: ios-sim-${{ env.XCODE_VERSION }}
+          restore-keys: |
+            ios-sim-
+
+      - name: Ensure iOS simulator runtime
+        run: |
+          if ! xcrun simctl list runtimes 2>/dev/null | grep -q "iOS 18"; then
+            xcodebuild -downloadPlatform iOS
+          fi
+
       - name: Run unit tests
         run: bundle exec fastlane test
 
