@@ -50,7 +50,7 @@ platform :ios do
     run_tests(
       project: "App/Synaesthetic.xcodeproj",
       scheme: "Synaesthetic",
-      destination: "platform=iOS Simulator,name=iPhone 16 Pro",
+      destination: "platform=iOS Simulator,name=iPhone 17 Pro",
       derived_data_path: "build/DerivedData",
       clean: false,
       result_bundle: true,
