@@ -76,6 +76,9 @@ jobs:
         run: bundle exec fastlane sync_dev_signing
 
       - name: Run unit tests
+        env:
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: 60
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES: 5
         run: bundle exec fastlane test
 
       - name: Upload test results
