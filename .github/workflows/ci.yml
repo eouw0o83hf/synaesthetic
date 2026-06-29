@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  XCODE_VERSION: "16.3"
+  XCODE_VERSION: "16.4"
   RUBY_VERSION: "3.3"
 
 jobs:
