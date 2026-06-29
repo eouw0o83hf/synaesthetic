@@ -37,7 +37,9 @@ platform :ios do
       type: "appstore",
       api_key: app_store_connect_api_key_from_env,
       readonly: readonly,
-      verbose: false
+      verbose: false,
+      keychain_name: is_ci ? "build.keychain" : nil,
+      keychain_password: is_ci ? ENV["KEYCHAIN_PASSWORD"] : nil
     )
   end
 
