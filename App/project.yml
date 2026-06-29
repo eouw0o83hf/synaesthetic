@@ -54,6 +54,7 @@ settings:
     Release:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: ""
       ENABLE_TESTABILITY: NO
+      EXCLUDED_ARCHS[sdk=iphonesimulator*]: "arm64 x86_64"
 
 # ── Targets ──────────────────────────────────────────────────────────────────
 targets:
