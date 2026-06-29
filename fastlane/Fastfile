@@ -49,6 +49,7 @@ platform :ios do
       project: "App/Synaesthetic.xcodeproj",
       scheme: "Synaesthetic",
       destination: "platform=iOS Simulator,name=iPhone 16 Pro",
+      derived_data_path: "build/DerivedData",
       clean: false,
       result_bundle: true,
       output_directory: "fastlane/test_output",
