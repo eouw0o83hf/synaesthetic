@@ -16,13 +16,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  XCODE_VERSION: "16.4"
+  XCODE_VERSION: "26.0"
   RUBY_VERSION: "3.3"
 
 jobs:
   test:
     name: Build & Test (iOS)
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Checkout
