@@ -103,11 +103,6 @@ platform :ios do
     )
 
     clean_build_artifacts
-    commit_version_bump(
-      message: "chore: bump build number [ci skip]",
-      xcodeproj: "App/Synaesthetic.xcodeproj",
-      force: true
-    )
   end
 
   # ── App Store Release ─────────────────────────────────────────────────────
@@ -157,11 +152,6 @@ platform :ios do
     )
 
     clean_build_artifacts
-    commit_version_bump(
-      message: "chore: bump build number [ci skip]",
-      xcodeproj: "App/Synaesthetic.xcodeproj",
-      force: true
-    )
   end
 
   # ── Screenshots ───────────────────────────────────────────────────────────
