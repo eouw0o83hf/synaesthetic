@@ -29,8 +29,8 @@ struct Emitter: View {
     /// The emitter's position on screen. Updated while repositioning.
     @Binding var position: CGPoint
 
-    /// The current rotational velocity in radians per second.
-    @State var velocity: CGFloat
+    /// Physics engine for velocity calculations.
+    @State private var physics: EmitterPhysics
 
     /// The current rotation angle in radians.
     @State private var rotation: CGFloat = 0
@@ -85,7 +85,7 @@ struct Emitter: View {
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
         self._position = position
-        self._velocity = State(initialValue: initialVelocity)
+        self._physics = State(initialValue: EmitterPhysics(initialVelocity: initialVelocity))
     }
 
     var body: some View {
@@ -142,7 +142,7 @@ struct Emitter: View {
     /// Starts the continuous rotation animation based on velocity.
     private func startRotation() {
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
-            rotation += velocity / 60.0
+            rotation += physics.velocity / 60.0
         }
     }
 
@@ -169,7 +169,7 @@ struct Emitter: View {
             let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
 
             // Silence when velocity is effectively zero
-            guard abs(velocity) > 0.01 else {
+            guard abs(physics.velocity) > 0.01 else {
                 for buffer in ablPointer {
                     let buf: UnsafeMutableBufferPointer<Float> = UnsafeMutableBufferPointer(buffer)
                     for frame in 0..<Int(frameCount) {
@@ -181,7 +181,7 @@ struct Emitter: View {
 
             // Linear frequency mapping: velocity 0-25 maps to 0-4000 Hz
             // Velocity is capped at 25 maximum
-            let clampedVelocity = min(abs(velocity), 25.0)
+            let clampedVelocity = min(abs(physics.velocity), 25.0)
             let frequency = (clampedVelocity / 25.0) * 4000.0
 
             // Linear volume mapping: size beyond handle scales amplitude linearly
@@ -249,12 +249,7 @@ struct Emitter: View {
         if let lastPos = lastDragPosition, let lastTime = lastDragTime {
             let deltaTime = currentTime.timeIntervalSince(lastTime)
             let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            updateVelocityFromSwipe(
-                from: lastPos,
-                to: currentPosition,
-                center: center,
-                deltaTime: deltaTime
-            )
+            physics.updateFromSwipe(from: lastPos, to: currentPosition, center: center, deltaTime: deltaTime)
         }
 
         lastDragPosition = currentPosition
@@ -333,51 +328,6 @@ struct Emitter: View {
         }
     }
 
-
-
-    /// Calculates the velocity change from a swipe gesture.
-    /// Returns the delta velocity that should be applied.
-    func calculateVelocityDelta(from: CGPoint, to: CGPoint, center: CGPoint, deltaTime: TimeInterval) -> CGFloat {
-        // Vector from center to touch point (average of from and to)
-        let midPoint = CGPoint(x: (from.x + to.x) / 2, y: (from.y + to.y) / 2)
-        let radialVector = CGPoint(x: midPoint.x - center.x, y: midPoint.y - center.y)
-        let radius = hypot(radialVector.x, radialVector.y)
-
-        guard radius > 1 else { return 0 } // Avoid division by zero
-
-        // Velocity vector of the touch
-        let velocityVector = CGPoint(
-            x: (to.x - from.x) / deltaTime,
-            y: (to.y - from.y) / deltaTime
-        )
-
-        // Calculate tangential component of velocity (perpendicular to radial direction)
-        // Tangential direction is perpendicular to radial: (-radialY, radialX) normalized
-        let tangentialDir = CGPoint(x: -radialVector.y / radius, y: radialVector.x / radius)
-
-        // Project velocity vector onto tangential direction (dot product)
-        let tangentialSpeed = velocityVector.x * tangentialDir.x + velocityVector.y * tangentialDir.y
-
-        // Convert tangential speed to angular acceleration (radians per second²)
-        let angularAcceleration = tangentialSpeed / radius
-
-        // Apply swipe speed as acceleration to the current velocity
-        // Scale factor controls responsiveness to swipe
-        let accelerationScale: CGFloat = 0.5
-        let acceleration = angularAcceleration * accelerationScale
-        return acceleration * CGFloat(deltaTime)
-    }
-
-    /// Updates velocity by applying swipe speed as angular acceleration.
-    /// Swipe velocity controls the rate of change of the emitter's angular velocity,
-    /// keeping continuous motion while small swipes create small velocity changes.
-    func updateVelocityFromSwipe(from: CGPoint, to: CGPoint, center: CGPoint, deltaTime: TimeInterval) {
-        let velocityDelta = calculateVelocityDelta(from: from, to: to, center: center, deltaTime: deltaTime)
-        velocity += velocityDelta
-
-        // Cap velocity at maximum of 25
-        velocity = max(-25, min(25, velocity))
-    }
 }
 
 #Preview {

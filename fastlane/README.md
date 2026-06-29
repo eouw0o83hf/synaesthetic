@@ -37,7 +37,7 @@ Sync App Store code signing
 [bundle exec] fastlane ios test
 ```
 
-Run all unit and UI tests
+Run all unit tests
 
 ### ios beta
 
