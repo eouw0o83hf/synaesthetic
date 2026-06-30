@@ -1,54 +1,87 @@
 import SwiftUI
 
+struct TriadResult {
+    let velocities: [CGFloat]
+    let major7thVelocity: CGFloat
+    let chordName: String
+}
+
 struct EmitterGenerator {
 
-    static let colors: [(Color, Color)] = [
-        (.red, .orange),
-        (.blue, .green),
-        (.purple, .pink)
-    ]
+    // Center 4 octaves of a piano: C3 (130.81 Hz) to C7 (2093.0 Hz).
+    static let pitchRangeHz: ClosedRange<Double> = 130.81...2093.0
 
-    /// Generates three velocities forming a Pythagorean triad with random octave spread.
-    /// Velocities are guaranteed to be in the range [0.5, 25] rad/s.
-    static func generatePythagoreanTriad() -> [CGFloat] {
-        let ratios: [(CGFloat, CGFloat, CGFloat)] = [
-            (3, 4, 5),
-            (5, 6, 8),
-            (4, 5, 6),
-            (8, 10, 12),
-        ]
+    // Root is capped at C5 so that all harmonics (up to the major 7th) stay within pitchRangeHz.
+    private static let rootRangeHz: ClosedRange<Double> = 130.81...523.25
 
-        let selectedRatio = ratios.randomElement()!
-        let baseFreq = CGFloat.random(in: 2...10)
-
-        var velocities = [
-            selectedRatio.0 / 3.0 * baseFreq,
-            selectedRatio.1 / 3.0 * baseFreq,
-            selectedRatio.2 / 3.0 * baseFreq
-        ]
-
-        let inversions = (0..<3).map { _ in CGFloat.random(in: 0...2).rounded() }
-        velocities = velocities.enumerated().map { index, velocity in
-            velocity * pow(2.0, inversions[index])
-        }
-
-        let maxVel = velocities.max()!
-        if maxVel > 25 {
-            velocities = velocities.map { $0 * (25.0 / maxVel) }
-        }
-
-        return velocities.map { max($0, 0.5) }
+    /// Converts a frequency in Hz to the velocity value expected by Emitter.
+    /// Inverse of: fixedFrequency = (velocity / 25) * 4000
+    static func pitchToVelocity(_ hz: Double) -> CGFloat {
+        CGFloat((hz / 4000.0) * 25.0)
     }
 
-    /// Generates a single EmitterConfig with the given velocity and color index,
+    /// Octave-shifts hz into pitchRangeHz.
+    private static func clampToPitchRange(_ hz: Double) -> Double {
+        var f = hz
+        while f < pitchRangeHz.lowerBound { f *= 2 }
+        while f > pitchRangeHz.upperBound { f /= 2 }
+        return f
+    }
+
+    // MARK: - Colors
+
+    /// Generates a harmonically related color pair using an analogous hue relationship.
+    static func randomColorPair() -> (Color, Color) {
+        let hue = Double.random(in: 0...1)
+        let saturation = Double.random(in: 0.75...1.0)
+        let brightness = Double.random(in: 0.75...1.0)
+        let hueShift = Double.random(in: 0.055...0.138)  // ~20–50° analogous shift
+        let highlightHue = (hue + hueShift).truncatingRemainder(dividingBy: 1.0)
+        return (
+            Color(hue: hue, saturation: saturation, brightness: brightness),
+            Color(hue: highlightHue, saturation: Double.random(in: 0.65...1.0), brightness: min(brightness + 0.1, 1.0))
+        )
+    }
+
+    // MARK: - Pitch
+
+    /// Generates three just-intonation chord tones plus a major 7th, all within the
+    /// center 4 octaves of a piano. Velocities are computed via pitchToVelocity so the
+    /// same conversion is used at startup and on every new-emitter event.
+    static func generatePythagoreanTriad() -> TriadResult {
+        let chordTypes: [(r2: Double, r3: Double, name: String)] = [
+            (5.0 / 4.0, 3.0 / 2.0, "Major"),    // major third + perfect fifth
+            (6.0 / 5.0, 3.0 / 2.0, "Minor"),    // minor third + perfect fifth
+            (4.0 / 3.0, 16.0 / 9.0, "Quartal"), // two stacked perfect fourths
+        ]
+
+        let selected = chordTypes.randomElement()!
+        let rootHz = Double.random(in: rootRangeHz)
+
+        let frequencies = [
+            rootHz,
+            clampToPitchRange(rootHz * selected.r2),
+            clampToPitchRange(rootHz * selected.r3),
+        ]
+        let major7thHz = clampToPitchRange(rootHz * 15.0 / 8.0)
+
+        return TriadResult(
+            velocities: frequencies.map { pitchToVelocity($0) },
+            major7thVelocity: pitchToVelocity(major7thHz),
+            chordName: selected.name
+        )
+    }
+
+    // MARK: - Emitter layout
+
+    /// Generates a single EmitterConfig with the given velocity,
     /// placed to avoid overlap with any existing emitters.
     static func generateSingleEmitter(
         velocity: CGFloat,
-        colorIndex: Int,
         existingEmitters: [EmitterConfig],
         screenBounds: CGRect
     ) -> EmitterConfig {
-        let (baseColor, highlightColor) = colors[colorIndex % colors.count]
+        let (baseColor, highlightColor) = randomColorPair()
         let minSize = Emitter.handleRadius * 2
         let size = max(minSize, CGFloat.random(in: 150...280))
 
