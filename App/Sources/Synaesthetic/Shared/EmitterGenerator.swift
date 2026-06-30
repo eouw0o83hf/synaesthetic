@@ -150,7 +150,8 @@ struct EmitterGenerator {
             initialVelocity: velocity,
             size: size,
             position: position ?? randomScreenPosition(excludingSize: size, screenBounds: screenBounds),
-            reverb: EmitterReverb.random()
+            reverb: EmitterReverb.random(),
+            delay: EmitterDelay.random()
         )
     }
 

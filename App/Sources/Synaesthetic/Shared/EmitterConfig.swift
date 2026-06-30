@@ -11,6 +11,7 @@ struct EmitterConfig {
     let size: CGFloat
     var position: CGPoint
     let reverb: EmitterReverb
+    let delay: EmitterDelay
 
     init(
         radius: CGFloat,
@@ -19,7 +20,8 @@ struct EmitterConfig {
         initialVelocity: CGFloat,
         size: CGFloat,
         position: CGPoint,
-        reverb: EmitterReverb = EmitterReverb(amount: 0)
+        reverb: EmitterReverb = EmitterReverb(amount: 0),
+        delay: EmitterDelay = EmitterDelay(period: 0)
     ) {
         self.radius = radius
         self.color = color
@@ -28,5 +30,6 @@ struct EmitterConfig {
         self.size = size
         self.position = position
         self.reverb = reverb
+        self.delay = delay
     }
 }

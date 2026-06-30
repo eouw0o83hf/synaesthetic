@@ -35,6 +35,9 @@ struct Emitter: View {
     /// The reverb effect applied to this emitter (audio + visual).
     let reverb: EmitterReverb
 
+    /// The delay effect applied to this emitter: echoes each ping after `delay.period` seconds.
+    let delay: EmitterDelay
+
     /// The emitter's position on screen. Updated while repositioning.
     @Binding var position: CGPoint
 
@@ -113,6 +116,7 @@ struct Emitter: View {
         highlightColor: Color,
         initialVelocity: CGFloat = 1,
         reverb: EmitterReverb = EmitterReverb(amount: 0),
+        delay: EmitterDelay = EmitterDelay(period: 0),
         position: Binding<CGPoint> = .constant(.zero),
         screenHeight: CGFloat = 0,
         isDragging: Binding<Bool> = .constant(false),
@@ -126,6 +130,7 @@ struct Emitter: View {
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
         self.reverb = reverb
+        self.delay = delay
         self._position = position
         self.screenHeight = screenHeight
         self._externalIsDragging = isDragging
@@ -215,6 +220,11 @@ struct Emitter: View {
             let currCycle = Int(floor(rotation / (2.0 * .pi)))
             if prevCycle != currCycle {
                 beepTrigger += 1
+                if delay.period > 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay.period) {
+                        beepTrigger += 1
+                    }
+                }
             }
         }
     }
