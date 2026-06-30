@@ -89,6 +89,9 @@ struct Emitter: View {
     /// Audio source node for tone generation.
     @State private var sourceNode: AVAudioSourceNode?
 
+    /// EQ node for equal loudness curve.
+    @State private var eqNode: AVAudioUnitEQ?
+
     /// Current phase of the audio waveform.
     @State private var phase: Double = 0
 
@@ -294,11 +297,17 @@ struct Emitter: View {
         reverbNode.loadFactoryPreset(reverbPreset)
         reverbNode.wetDryMix = reverb.wetDryMix
         engine.attach(reverbNode)
+
+        let eq = EmitterEqualLoudness.createEQNode()
+        engine.attach(eq)
+
         engine.connect(source, to: reverbNode, format: format)
-        engine.connect(reverbNode, to: mainMixer, format: format)
+        engine.connect(reverbNode, to: eq, format: format)
+        engine.connect(eq, to: mainMixer, format: format)
 
         self.audioEngine = engine
         self.sourceNode = source
+        self.eqNode = eq
     }
 
     /// Starts the audio engine.
