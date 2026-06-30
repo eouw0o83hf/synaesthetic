@@ -24,6 +24,7 @@ struct ContentView: View {
                             color: config.color,
                             highlightColor: config.highlightColor,
                             initialVelocity: config.initialVelocity,
+                            reverb: config.reverb,
                             position: $emitters[index].position,
                             screenHeight: geometry.size.height,
                             isDragging: $isDraggingEmitter,

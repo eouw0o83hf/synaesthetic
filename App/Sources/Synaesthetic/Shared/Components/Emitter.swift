@@ -5,7 +5,9 @@ import UIKit
 #endif
 
 /// A circle with an angular gradient that wraps around with a sharp radial edge.
-/// The emitter rotates continuously at a velocity measured in radians per second.
+/// The emitter rotates continuously at a tempo (measured in radians per second).
+/// The tempo is a harmonic multiple of 60 BPM and drives both the visual rotation
+/// speed and the audio pitch.
 struct Emitter: View {
     /// Radius of the handle (solid center circle) used to reposition the emitter. The emitter's
     /// frame will never shrink below this handle's diameter.
@@ -26,8 +28,12 @@ struct Emitter: View {
     /// The highlight color that the gradient fades to.
     let highlightColor: Color
 
-    /// The initial velocity in radians per second. Defaults to 1.
+    /// The initial tempo in radians per second (harmonic multiple of 60 BPM).
+    /// Drives both the visual rotation speed and the audio pitch.
     let initialVelocity: CGFloat
+
+    /// The reverb effect applied to this emitter (audio + visual).
+    let reverb: EmitterReverb
 
     /// The emitter's position on screen. Updated while repositioning.
     @Binding var position: CGPoint
@@ -95,11 +101,15 @@ struct Emitter: View {
     /// Sample rate stored from the audio engine for use in the rotation timer.
     @State private var audioSampleRate: Double = 44100
 
+    /// Animated blur radius for the reverb halo — pulses to reverb.blurRadius on each ping then decays to zero.
+    @State private var currentBlurRadius: CGFloat = 0
+
     init(
         radius: CGFloat,
         color: Color,
         highlightColor: Color,
         initialVelocity: CGFloat = 1,
+        reverb: EmitterReverb = EmitterReverb(amount: 0),
         position: Binding<CGPoint> = .constant(.zero),
         screenHeight: CGFloat = 0,
         isDragging: Binding<Bool> = .constant(false),
@@ -112,6 +122,7 @@ struct Emitter: View {
         self.color = color
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
+        self.reverb = reverb
         self._position = position
         self.screenHeight = screenHeight
         self._externalIsDragging = isDragging
@@ -123,6 +134,22 @@ struct Emitter: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                if reverb.amount > 0 {
+                    Circle()
+                        .fill(
+                            AngularGradient(
+                                colors: [color, highlightColor],
+                                center: .center
+                            )
+                        )
+                        .frame(width: radius * 2, height: radius * 2)
+                        .rotationEffect(.radians(rotation))
+                        .blur(radius: currentBlurRadius)
+                        .opacity(0.9)
+                        .scaleEffect(pulseScale)
+                        .allowsHitTesting(false)
+                }
+
                 Circle()
                     .fill(
                         AngularGradient(
@@ -163,6 +190,12 @@ struct Emitter: View {
         }
         .onDisappear {
             stopAudio()
+        }
+        .onChange(of: beepTrigger) { _, _ in
+            currentBlurRadius = reverb.blurRadius
+            withAnimation(.linear(duration: 0.08 * 3)) {
+                currentBlurRadius = 0
+            }
         }
     }
 
@@ -250,7 +283,19 @@ struct Emitter: View {
         }
 
         engine.attach(source)
-        engine.connect(source, to: mainMixer, format: format)
+
+        let reverbNode = AVAudioUnitReverb()
+        let reverbPreset: AVAudioUnitReverbPreset
+        switch reverb.amount {
+        case ..<0.33: reverbPreset = .smallRoom
+        case ..<0.67: reverbPreset = .mediumHall
+        default:      reverbPreset = .cathedral
+        }
+        reverbNode.loadFactoryPreset(reverbPreset)
+        reverbNode.wetDryMix = reverb.wetDryMix
+        engine.attach(reverbNode)
+        engine.connect(source, to: reverbNode, format: format)
+        engine.connect(reverbNode, to: mainMixer, format: format)
 
         self.audioEngine = engine
         self.sourceNode = source

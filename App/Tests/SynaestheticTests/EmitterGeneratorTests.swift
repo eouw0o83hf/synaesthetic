@@ -28,6 +28,46 @@ final class EmitterGeneratorTests: XCTestCase {
         XCTAssertTrue(abs(reconstructedHz - originalHz) <= 0.01)
     }
 
+    // MARK: - Tempo (harmonic constraints)
+
+    func test_tempoToVelocity_60bpm() {
+        // 60 BPM = 2π rad/s
+        let velocity = EmitterGenerator.tempoToVelocity(60)
+        XCTAssertEqual(Double(velocity), 2.0 * .pi, accuracy: 0.001)
+    }
+
+    func test_tempoToVelocity_120bpm() {
+        // 120 BPM = 4π rad/s
+        let velocity = EmitterGenerator.tempoToVelocity(120)
+        XCTAssertEqual(Double(velocity), 4.0 * .pi, accuracy: 0.001)
+    }
+
+    func test_velocityToTempo_roundtrip() {
+        // Verify tempo -> velocity -> tempo roundtrip
+        let originalTempo = 90.0
+        let velocity = EmitterGenerator.tempoToVelocity(originalTempo)
+        let reconstructedTempo = EmitterGenerator.velocityToTempo(velocity)
+        XCTAssertEqual(reconstructedTempo, originalTempo, accuracy: 0.001)
+    }
+
+    func test_harmonic_tempos_all_valid() {
+        // All harmonic tempos should convert to velocities within 0-25 rad/s
+        for bpm in EmitterGenerator.harmonicTemposBPM {
+            let velocity = EmitterGenerator.tempoToVelocity(bpm)
+            XCTAssertGreaterThanOrEqual(Double(velocity), 0)
+            XCTAssertLessThanOrEqual(Double(velocity), 25.2)  // Allow slight overage
+        }
+    }
+
+    func test_random_harmonic_tempo_velocity_within_range() {
+        // Verify random harmonic tempos are valid velocities
+        for _ in 0..<20 {
+            let velocity = EmitterGenerator.randomHarmonicTempoVelocity()
+            XCTAssertGreaterThanOrEqual(Double(velocity), Double(EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!)))
+            XCTAssertLessThanOrEqual(Double(velocity), Double(EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!)))
+        }
+    }
+
     // MARK: - generatePythagoreanTriad
 
     func test_triad_returns_valid_result() {

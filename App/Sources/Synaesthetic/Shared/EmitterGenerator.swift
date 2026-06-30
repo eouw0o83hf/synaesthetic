@@ -14,8 +14,28 @@ struct EmitterGenerator {
     // Root is capped at C5 so that all harmonics (up to the major 7th) stay within pitchRangeHz.
     private static let rootRangeHz: ClosedRange<Double> = 130.81...523.25
 
-    /// Converts a frequency in Hz to the velocity value expected by Emitter.
-    /// Inverse of: fixedFrequency = (velocity / 25) * 4000
+    /// All emitter tempos are rhythmic harmonics of 60 BPM (integer multiples: 0.5x to 4x).
+    /// Stored as BPM values; convert to velocity (rad/s) via: velocity = bpm * 2π / 60
+    static let harmonicTemposBPM: [Double] = [30, 60, 90, 120, 150, 180, 210, 240]
+
+    /// Converts tempo in BPM to velocity in rad/s.
+    static func tempoToVelocity(_ bpm: Double) -> CGFloat {
+        CGFloat(bpm * 2.0 * .pi / 60.0)
+    }
+
+    /// Converts velocity in rad/s to tempo in BPM.
+    static func velocityToTempo(_ velocity: CGFloat) -> Double {
+        Double(velocity) * 60.0 / (2.0 * .pi)
+    }
+
+    /// Picks a random harmonic tempo (multiple of 60 BPM) and returns its velocity.
+    static func randomHarmonicTempoVelocity() -> CGFloat {
+        let bpm = harmonicTemposBPM.randomElement()!
+        return tempoToVelocity(bpm)
+    }
+
+    /// Converts a frequency in Hz to the tempo value (velocity in rad/s) expected by Emitter.
+    /// Inverse of: fixedFrequency = (tempo / 25) * 4000
     static func pitchToVelocity(_ hz: Double) -> CGFloat {
         CGFloat((hz / 4000.0) * 25.0)
     }
@@ -45,37 +65,39 @@ struct EmitterGenerator {
 
     // MARK: - Pitch
 
-    /// Generates three just-intonation chord tones plus a major 7th, all within the
-    /// center 4 octaves of a piano. Velocities are computed via pitchToVelocity so the
-    /// same conversion is used at startup and on every new-emitter event.
+    /// Generates three distinct harmonic tempos (multiples of 60 BPM) plus a major 7th.
+    /// Returns tempos as velocities to maintain synesthetic audio-visual coupling.
     static func generatePythagoreanTriad() -> TriadResult {
-        let chordTypes: [(r2: Double, r3: Double, name: String)] = [
-            (5.0 / 4.0, 3.0 / 2.0, "Major"),    // major third + perfect fifth
-            (6.0 / 5.0, 3.0 / 2.0, "Minor"),    // minor third + perfect fifth
-            (4.0 / 3.0, 16.0 / 9.0, "Quartal"), // two stacked perfect fourths
-        ]
+        let chordNames = ["Major", "Minor", "Quartal"]
+        let selected = chordNames.randomElement()!
 
-        let selected = chordTypes.randomElement()!
-        let rootHz = Double.random(in: rootRangeHz)
+        // Pick 3 distinct harmonic tempos spread across the range
+        var selectedTempos = Set<Double>()
+        while selectedTempos.count < 3 {
+            selectedTempos.insert(harmonicTemposBPM.randomElement()!)
+        }
+        let triadTempos = Array(selectedTempos).sorted()
+        let velocities = triadTempos.map { tempoToVelocity($0) }
 
-        let frequencies = [
-            rootHz,
-            clampToPitchRange(rootHz * selected.r2),
-            clampToPitchRange(rootHz * selected.r3),
-        ]
-        let major7thHz = clampToPitchRange(rootHz * 15.0 / 8.0)
+        // Major 7th: pick a 4th distinct tempo
+        var major7thTempo = harmonicTemposBPM.randomElement()!
+        while selectedTempos.contains(major7thTempo) {
+            major7thTempo = harmonicTemposBPM.randomElement()!
+        }
+        let major7thVelocity = tempoToVelocity(major7thTempo)
 
         return TriadResult(
-            velocities: frequencies.map { pitchToVelocity($0) },
-            major7thVelocity: pitchToVelocity(major7thHz),
-            chordName: selected.name
+            velocities: velocities,
+            major7thVelocity: major7thVelocity,
+            chordName: selected
         )
     }
 
     // MARK: - Emitter layout
 
-    /// Generates a single EmitterConfig with the given velocity,
+    /// Generates a single EmitterConfig with the given tempo (velocity in rad/s),
     /// placed to avoid overlap with any existing emitters.
+    /// The tempo should be a harmonic multiple of 60 BPM (converted to velocity via tempoToVelocity).
     static func generateSingleEmitter(
         velocity: CGFloat,
         existingEmitters: [EmitterConfig],
@@ -104,7 +126,8 @@ struct EmitterGenerator {
             highlightColor: highlightColor,
             initialVelocity: velocity,
             size: size,
-            position: position ?? randomScreenPosition(excludingSize: size, screenBounds: screenBounds)
+            position: position ?? randomScreenPosition(excludingSize: size, screenBounds: screenBounds),
+            reverb: EmitterReverb.random()
         )
     }
 
