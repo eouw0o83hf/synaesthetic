@@ -195,6 +195,95 @@ final class EmitterGeneratorTests: XCTestCase {
                                    "Random color generation should produce variety")
     }
 
+    // MARK: - Synaesthetic color mapping
+
+    func test_velocityToHue_minimum_velocity_returns_violet() {
+        let minVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!)
+        let hue = EmitterGenerator.velocityToHue(minVelocity)
+        XCTAssertEqual(hue, 0.75, accuracy: 0.01, "Minimum velocity should map to violet (hue ~0.75)")
+    }
+
+    func test_velocityToHue_maximum_velocity_returns_red() {
+        let maxVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!)
+        let hue = EmitterGenerator.velocityToHue(maxVelocity)
+        XCTAssertEqual(hue, 0.0, accuracy: 0.01, "Maximum velocity should map to red (hue ~0)")
+    }
+
+    func test_velocityToHue_middle_velocity_in_range() {
+        let minVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!)
+        let maxVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!)
+        let midVelocity = (minVelocity + maxVelocity) / 2
+        let hue = EmitterGenerator.velocityToHue(midVelocity)
+        XCTAssertGreaterThan(hue, 0.3, "Mid velocity should map to hue > 0.3")
+        XCTAssertLessThan(hue, 0.5, "Mid velocity should map to hue < 0.5")
+    }
+
+    func test_velocityToHue_output_always_in_valid_range() {
+        for bpm in EmitterGenerator.harmonicTemposBPM {
+            let velocity = EmitterGenerator.tempoToVelocity(bpm)
+            let hue = EmitterGenerator.velocityToHue(velocity)
+            XCTAssertGreaterThanOrEqual(hue, 0.0, "Hue should be >= 0")
+            XCTAssertLessThanOrEqual(hue, 0.75, "Hue should be <= 0.75 (violet)")
+        }
+    }
+
+    func test_velocityToHue_clamped_for_out_of_range_velocities() {
+        let minVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!)
+        let maxVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!)
+
+        let belowMin = minVelocity - 10
+        let aboveMax = maxVelocity + 10
+
+        let hueBelowMin = EmitterGenerator.velocityToHue(belowMin)
+        let hueAboveMax = EmitterGenerator.velocityToHue(aboveMax)
+
+        XCTAssertGreaterThanOrEqual(hueBelowMin, 0.0, "Hue for below-min velocity should be >= 0")
+        XCTAssertLessThanOrEqual(hueBelowMin, 0.75, "Hue for below-min velocity should be <= 0.75")
+        XCTAssertGreaterThanOrEqual(hueAboveMax, 0.0, "Hue for above-max velocity should be >= 0")
+        XCTAssertLessThanOrEqual(hueAboveMax, 0.75, "Hue for above-max velocity should be <= 0.75")
+    }
+
+    func test_colorPairForPitch_returns_two_colors() {
+        let velocity: CGFloat = 5
+        let (baseColor, highlightColor) = EmitterGenerator.colorPairForPitch(velocity)
+        let baseDesc = "\(baseColor)"
+        let highlightDesc = "\(highlightColor)"
+        XCTAssertFalse(baseDesc.isEmpty, "Base color should be valid")
+        XCTAssertFalse(highlightDesc.isEmpty, "Highlight color should be valid")
+    }
+
+    func test_colorPairForPitch_highlight_varies_per_call() {
+        let velocity: CGFloat = 5
+        var highlightDescs: Set<String> = []
+
+        for _ in 0..<10 {
+            let (_, highlightColor) = EmitterGenerator.colorPairForPitch(velocity)
+            highlightDescs.insert("\(highlightColor)")
+        }
+
+        XCTAssertGreaterThan(highlightDescs.count, 1,
+                           "Highlight colors should vary across multiple calls (randomized)")
+    }
+
+    func test_single_emitter_pitch_determines_base_color() {
+        // Two emitters with different velocities should have different base colors
+        let config1 = EmitterGenerator.generateSingleEmitter(
+            velocity: EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!),
+            existingEmitters: [],
+            screenBounds: standardBounds
+        )
+        let config2 = EmitterGenerator.generateSingleEmitter(
+            velocity: EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!),
+            existingEmitters: [],
+            screenBounds: standardBounds
+        )
+
+        let color1Desc = "\(config1.color)"
+        let color2Desc = "\(config2.color)"
+        XCTAssertNotEqual(color1Desc, color2Desc,
+                         "Emitters with different velocities should have different base colors")
+    }
+
     func test_single_emitter_size_within_expected_range() {
         for _ in 0..<20 {
             let config = EmitterGenerator.generateSingleEmitter(

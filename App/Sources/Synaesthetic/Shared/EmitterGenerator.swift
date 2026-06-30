@@ -50,6 +50,29 @@ struct EmitterGenerator {
 
     // MARK: - Colors
 
+    /// Maps velocity to a synaesthetic hue on the spectrum from red (high pitch) to violet (low pitch).
+    /// Red is at 0° (hue 0), violet at 270° (hue 0.75).
+    static func velocityToHue(_ velocity: CGFloat) -> Double {
+        let minVelocity = tempoToVelocity(harmonicTemposBPM.min()!)
+        let maxVelocity = tempoToVelocity(harmonicTemposBPM.max()!)
+        let normalized = Double((velocity - minVelocity) / (maxVelocity - minVelocity))
+        let clamped = max(0, min(1, normalized))
+        return (1.0 - clamped) * 0.75
+    }
+
+    /// Generates a color pair based on pitch: base color from synaesthetic spectrum,
+    /// highlight color randomized but pleasing.
+    static func colorPairForPitch(_ velocity: CGFloat) -> (Color, Color) {
+        let hue = velocityToHue(velocity)
+        let saturation = Double.random(in: 0.75...1.0)
+        let brightness = Double.random(in: 0.75...1.0)
+        let baseColor = Color(hue: hue, saturation: saturation, brightness: brightness)
+        let hueShift = Double.random(in: 0.055...0.138)
+        let highlightHue = (hue + hueShift).truncatingRemainder(dividingBy: 1.0)
+        let highlightColor = Color(hue: highlightHue, saturation: Double.random(in: 0.65...1.0), brightness: min(brightness + 0.1, 1.0))
+        return (baseColor, highlightColor)
+    }
+
     /// Generates a harmonically related color pair using an analogous hue relationship.
     static func randomColorPair() -> (Color, Color) {
         let hue = Double.random(in: 0...1)
@@ -103,7 +126,7 @@ struct EmitterGenerator {
         existingEmitters: [EmitterConfig],
         screenBounds: CGRect
     ) -> EmitterConfig {
-        let (baseColor, highlightColor) = randomColorPair()
+        let (baseColor, highlightColor) = colorPairForPitch(velocity)
         let minSize = Emitter.handleRadius * 2
         let size = max(minSize, CGFloat.random(in: 150...280))
 
