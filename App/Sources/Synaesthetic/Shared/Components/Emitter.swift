@@ -11,6 +11,9 @@ struct Emitter: View {
     /// frame will never shrink below this handle's diameter.
     static let handleRadius: CGFloat = 15
 
+    /// Distance from the bottom edge of the screen that triggers deletion when dragging.
+    static let deleteZoneInset: CGFloat = 10
+
     /// The initial radius in pixels.
     let initialRadius: CGFloat
 
@@ -28,6 +31,18 @@ struct Emitter: View {
 
     /// The emitter's position on screen. Updated while repositioning.
     @Binding var position: CGPoint
+
+    /// Screen height used to determine the delete zone threshold.
+    let screenHeight: CGFloat
+
+    /// Set to true while this emitter is being repositioned, false otherwise.
+    @Binding var externalIsDragging: Bool
+
+    /// Set to true while this emitter is in the delete zone during repositioning.
+    @Binding var externalIsInDeleteZone: Bool
+
+    /// Called when this emitter is dragged into the delete zone and released.
+    let onDelete: (() -> Void)?
 
     /// Physics engine for velocity calculations.
     @State private var physics: EmitterPhysics
@@ -76,7 +91,11 @@ struct Emitter: View {
         color: Color,
         highlightColor: Color,
         initialVelocity: CGFloat = 1,
-        position: Binding<CGPoint> = .constant(.zero)
+        position: Binding<CGPoint> = .constant(.zero),
+        screenHeight: CGFloat = 0,
+        isDragging: Binding<Bool> = .constant(false),
+        isInDeleteZone: Binding<Bool> = .constant(false),
+        onDelete: (() -> Void)? = nil
     ) {
         self.initialRadius = radius
         self._radius = State(initialValue: radius)
@@ -85,6 +104,10 @@ struct Emitter: View {
         self.highlightColor = highlightColor
         self.initialVelocity = initialVelocity
         self._position = position
+        self.screenHeight = screenHeight
+        self._externalIsDragging = isDragging
+        self._externalIsInDeleteZone = isInDeleteZone
+        self.onDelete = onDelete
         self._physics = State(initialValue: EmitterPhysics(initialVelocity: initialVelocity))
     }
 
@@ -230,13 +253,6 @@ struct Emitter: View {
     /// Stops the audio engine.
     private func stopAudio() {
         audioEngine?.stop()
-
-        // Deactivate audio session
-        do {
-            try AVAudioSession.sharedInstance().setActive(false)
-        } catch {
-            print("Failed to deactivate audio session: \(error)")
-        }
     }
 
     /// Handles drag gesture changes to apply acceleration based on swipe.
@@ -274,10 +290,14 @@ struct Emitter: View {
                     }
                 }
                 if isRepositioning {
-                    position = CGPoint(
+                    let newPosition = CGPoint(
                         x: repositionStartPosition.x + value.translation.width,
                         y: repositionStartPosition.y + value.translation.height
                     )
+                    position = newPosition
+                    if screenHeight > 0 {
+                        externalIsInDeleteZone = newPosition.y > screenHeight - Emitter.deleteZoneInset
+                    }
                 }
             }
             .onEnded { _ in
@@ -308,6 +328,7 @@ struct Emitter: View {
     private func beginReposition() {
         isRepositioning = true
         repositionStartPosition = position
+        externalIsDragging = true
         #if canImport(UIKit)
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
@@ -320,11 +341,17 @@ struct Emitter: View {
         }
     }
 
-    /// Exits repositioning mode and returns the handle to its resting scale.
+    /// Exits repositioning mode: resets external state, then deletes if in the delete zone.
     private func endReposition() {
         isRepositioning = false
+        let shouldDelete = externalIsInDeleteZone
+        externalIsDragging = false
+        externalIsInDeleteZone = false
         withAnimation(.easeInOut(duration: 0.2)) {
             pulseScale = 1.0
+        }
+        if shouldDelete {
+            onDelete?()
         }
     }
 

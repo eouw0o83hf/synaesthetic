@@ -52,4 +52,54 @@ final class EmitterViewTests: XCTestCase {
         )
         XCTAssertNotNil(emitter)
     }
+
+    // MARK: - New parameters added for drag-to-delete
+
+    func test_emitter_accepts_screen_height() {
+        let emitter = Emitter(
+            radius: 30,
+            color: .red,
+            highlightColor: .orange,
+            screenHeight: 844
+        )
+        XCTAssertNotNil(emitter)
+    }
+
+    func test_emitter_accepts_is_dragging_binding() {
+        var dragging = false
+        let emitter = Emitter(
+            radius: 30,
+            color: .red,
+            highlightColor: .orange,
+            isDragging: Binding(get: { dragging }, set: { dragging = $0 })
+        )
+        XCTAssertNotNil(emitter)
+    }
+
+    func test_emitter_accepts_is_in_delete_zone_binding() {
+        var inZone = false
+        let emitter = Emitter(
+            radius: 30,
+            color: .red,
+            highlightColor: .orange,
+            isInDeleteZone: Binding(get: { inZone }, set: { inZone = $0 })
+        )
+        XCTAssertNotNil(emitter)
+    }
+
+    func test_emitter_accepts_on_delete_callback() {
+        var deleted = false
+        let emitter = Emitter(
+            radius: 30,
+            color: .red,
+            highlightColor: .orange,
+            onDelete: { deleted = true }
+        )
+        XCTAssertNotNil(emitter)
+        XCTAssertFalse(deleted, "onDelete should not fire on initialization")
+    }
+
+    func test_emitter_handle_radius_constant_unchanged() {
+        XCTAssertEqual(Emitter.handleRadius, 15)
+    }
 }
