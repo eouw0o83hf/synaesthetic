@@ -6,7 +6,7 @@ struct EmitterReverb {
 
     /// Blur radius in points applied to the outer edge bloom.
     var blurRadius: CGFloat {
-        CGFloat(amount * 100.0)
+        CGFloat(amount * 30.0)
     }
 
     /// Wet/dry mix for AVAudioUnitReverb (0–80).

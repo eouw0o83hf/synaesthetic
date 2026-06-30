@@ -88,26 +88,32 @@ struct EmitterGenerator {
 
     // MARK: - Pitch
 
-    /// Generates three distinct harmonic tempos (multiples of 60 BPM) plus a major 7th.
-    /// Returns tempos as velocities to maintain synesthetic audio-visual coupling.
+    /// Generates three harmonically related pitches (Pythagorean triad) plus a major 7th.
+    /// Root is picked from rootRangeHz to ensure all harmonics stay within pitchRangeHz.
     static func generatePythagoreanTriad() -> TriadResult {
         let chordNames = ["Major", "Minor", "Quartal"]
         let selected = chordNames.randomElement()!
 
-        // Pick 3 distinct harmonic tempos spread across the range
-        var selectedTempos = Set<Double>()
-        while selectedTempos.count < 3 {
-            selectedTempos.insert(harmonicTemposBPM.randomElement()!)
-        }
-        let triadTempos = Array(selectedTempos).sorted()
-        let velocities = triadTempos.map { tempoToVelocity($0) }
+        let rootHz = Double.random(in: rootRangeHz)
 
-        // Major 7th: pick a 4th distinct tempo
-        var major7thTempo = harmonicTemposBPM.randomElement()!
-        while selectedTempos.contains(major7thTempo) {
-            major7thTempo = harmonicTemposBPM.randomElement()!
+        let triadRatios: [Double]
+        switch selected {
+        case "Major":
+            triadRatios = [1.0, 1.25, 1.5]  // 1, 5/4, 3/2
+        case "Minor":
+            triadRatios = [1.0, 1.2, 1.5]   // 1, 6/5, 3/2
+        case "Quartal":
+            triadRatios = [1.0, 1.333, 1.5] // 1, 4/3, 3/2
+        default:
+            triadRatios = [1.0, 1.25, 1.5]
         }
-        let major7thVelocity = tempoToVelocity(major7thTempo)
+
+        let triadHz = triadRatios.map { clampToPitchRange(rootHz * $0) }
+        let velocities = triadHz.map { pitchToVelocity($0) }
+
+        let major7thRatio = 1.875  // 15/8
+        let major7thHz = clampToPitchRange(rootHz * major7thRatio)
+        let major7thVelocity = pitchToVelocity(major7thHz)
 
         return TriadResult(
             velocities: velocities,
