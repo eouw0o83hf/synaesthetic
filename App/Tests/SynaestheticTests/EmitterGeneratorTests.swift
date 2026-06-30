@@ -198,24 +198,24 @@ final class EmitterGeneratorTests: XCTestCase {
     // MARK: - Synaesthetic color mapping
 
     func test_velocityToHue_minimum_velocity_returns_violet() {
-        let minVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!)
+        let minVelocity = EmitterGenerator.pitchToVelocity(EmitterGenerator.pitchRangeHz.lowerBound)
         let hue = EmitterGenerator.velocityToHue(minVelocity)
-        XCTAssertEqual(hue, 0.75, accuracy: 0.01, "Minimum velocity should map to violet (hue ~0.75)")
+        XCTAssertEqual(hue, 0.75, accuracy: 0.01, "Minimum pitch velocity should map to violet (hue ~0.75)")
     }
 
     func test_velocityToHue_maximum_velocity_returns_red() {
-        let maxVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!)
+        let maxVelocity = EmitterGenerator.pitchToVelocity(EmitterGenerator.pitchRangeHz.upperBound)
         let hue = EmitterGenerator.velocityToHue(maxVelocity)
-        XCTAssertEqual(hue, 0.0, accuracy: 0.01, "Maximum velocity should map to red (hue ~0)")
+        XCTAssertEqual(hue, 0.0, accuracy: 0.01, "Maximum pitch velocity should map to red (hue ~0)")
     }
 
     func test_velocityToHue_middle_velocity_in_range() {
-        let minVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.min()!)
-        let maxVelocity = EmitterGenerator.tempoToVelocity(EmitterGenerator.harmonicTemposBPM.max()!)
+        let minVelocity = EmitterGenerator.pitchToVelocity(EmitterGenerator.pitchRangeHz.lowerBound)
+        let maxVelocity = EmitterGenerator.pitchToVelocity(EmitterGenerator.pitchRangeHz.upperBound)
         let midVelocity = (minVelocity + maxVelocity) / 2
         let hue = EmitterGenerator.velocityToHue(midVelocity)
-        XCTAssertGreaterThan(hue, 0.3, "Mid velocity should map to hue > 0.3")
-        XCTAssertLessThan(hue, 0.5, "Mid velocity should map to hue < 0.5")
+        XCTAssertGreaterThan(hue, 0.3, "Mid pitch velocity should map to hue > 0.3")
+        XCTAssertLessThan(hue, 0.5, "Mid pitch velocity should map to hue < 0.5")
     }
 
     func test_velocityToHue_output_always_in_valid_range() {

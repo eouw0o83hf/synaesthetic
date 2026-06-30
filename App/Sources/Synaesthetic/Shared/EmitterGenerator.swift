@@ -9,7 +9,15 @@ struct TriadResult {
 struct EmitterGenerator {
 
     // Center 4 octaves of a piano: C3 (130.81 Hz) to C7 (2093.0 Hz).
+    // Used for both pitch generation and color mapping (red at high pitch, violet at low pitch).
     static let pitchRangeHz: ClosedRange<Double> = 130.81...2093.0
+
+    // Velocity range corresponding to pitchRangeHz for color mapping.
+    private static let colorMappingVelocityRange: ClosedRange<CGFloat> = {
+        let minVelocity = pitchToVelocity(pitchRangeHz.lowerBound)
+        let maxVelocity = pitchToVelocity(pitchRangeHz.upperBound)
+        return minVelocity...maxVelocity
+    }()
 
     // Root is capped at C5 so that all harmonics (up to the major 7th) stay within pitchRangeHz.
     private static let rootRangeHz: ClosedRange<Double> = 130.81...523.25
@@ -52,10 +60,9 @@ struct EmitterGenerator {
 
     /// Maps velocity to a synaesthetic hue on the spectrum from red (high pitch) to violet (low pitch).
     /// Red is at 0° (hue 0), violet at 270° (hue 0.75).
+    /// Uses colorMappingVelocityRange derived from pitchRangeHz.
     static func velocityToHue(_ velocity: CGFloat) -> Double {
-        let minVelocity = tempoToVelocity(harmonicTemposBPM.min()!)
-        let maxVelocity = tempoToVelocity(harmonicTemposBPM.max()!)
-        let normalized = Double((velocity - minVelocity) / (maxVelocity - minVelocity))
+        let normalized = Double((velocity - colorMappingVelocityRange.lowerBound) / (colorMappingVelocityRange.upperBound - colorMappingVelocityRange.lowerBound))
         let clamped = max(0, min(1, normalized))
         return (1.0 - clamped) * 0.75
     }
