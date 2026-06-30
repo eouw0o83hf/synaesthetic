@@ -26,7 +26,8 @@ final class EmitterGeneratorTests: XCTestCase {
         for _ in 0..<50 {
             let velocities = EmitterGenerator.generatePythagoreanTriad()
             for v in velocities {
-                XCTAssertLessThanOrEqual(v, 25.0, "Velocity \(v) exceeds the maximum of 25")
+                // Allow a tiny floating-point epsilon from the ratio-scaling arithmetic
+                XCTAssertLessThanOrEqual(v, 25.0 + 1e-10, "Velocity \(v) exceeds the maximum of 25")
             }
         }
     }

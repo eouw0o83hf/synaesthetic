@@ -86,6 +86,15 @@ struct Emitter: View {
     /// Current phase of the audio waveform.
     @State private var phase: Double = 0
 
+    /// Pitch frequency fixed at instantiation from the initial velocity.
+    @State private var fixedFrequency: Double = 440
+
+    /// Incremented on the main thread each time the emitter crosses position 0.
+    @State private var beepTrigger: Int = 0
+
+    /// Sample rate stored from the audio engine for use in the rotation timer.
+    @State private var audioSampleRate: Double = 44100
+
     init(
         radius: CGFloat,
         color: Color,
@@ -165,7 +174,12 @@ struct Emitter: View {
     /// Starts the continuous rotation animation based on velocity.
     private func startRotation() {
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
+            let prevCycle = Int(floor(rotation / (2.0 * .pi)))
             rotation += physics.velocity / 60.0
+            let currCycle = Int(floor(rotation / (2.0 * .pi)))
+            if prevCycle != currCycle {
+                beepTrigger += 1
+            }
         }
     }
 
@@ -186,46 +200,49 @@ struct Emitter: View {
         let format = mainMixer.outputFormat(forBus: 0)
 
         let sampleRate = format.sampleRate
+        audioSampleRate = sampleRate
 
-        // Create a source node that generates sine wave audio
+        // Pitch is derived from the initial velocity and never changes.
+        let clampedVelocity = min(abs(initialVelocity), 25.0)
+        fixedFrequency = (clampedVelocity / 25.0) * 4000.0
+
+        // Beep duration: ~80 ms
+        let beepDurationSamples = Int(sampleRate * 0.08)
+
+        // These locals are only ever accessed from the audio thread.
+        var lastSeenTrigger = 0
+        var beepSamplesRemaining = 0
+
         let source = AVAudioSourceNode { [self] _, _, frameCount, audioBufferList -> OSStatus in
             let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
 
-            // Silence when velocity is effectively zero
-            guard abs(physics.velocity) > 0.01 else {
-                for buffer in ablPointer {
-                    let buf: UnsafeMutableBufferPointer<Float> = UnsafeMutableBufferPointer(buffer)
-                    for frame in 0..<Int(frameCount) {
-                        buf[frame] = 0.0
-                    }
-                }
-                return noErr
+            // Start a new beep if the main thread signalled a zero-crossing.
+            let currentTrigger = beepTrigger
+            if currentTrigger > lastSeenTrigger {
+                lastSeenTrigger = currentTrigger
+                beepSamplesRemaining = beepDurationSamples
+                phase = 0.0
             }
 
-            // Linear frequency mapping: velocity 0-25 maps to 0-4000 Hz
-            // Velocity is capped at 25 maximum
-            let clampedVelocity = min(abs(physics.velocity), 25.0)
-            let frequency = (clampedVelocity / 25.0) * 4000.0
-
-            // Linear volume mapping: size beyond handle scales amplitude linearly
-            // 0px beyond handle (radius = 15) → amplitude = 0 (silent)
-            // 1px beyond handle (radius = 15.5) → amplitude ≈ 0.001 (nearly inaudible)
-            // Scales at 0.001 amplitude per pixel, capped at 0.15 (maximum)
             let excessRadius = max(0, radius - Emitter.handleRadius)
             let amplitude = min(Float(excessRadius * 0.001), 0.15)
 
             for frame in 0..<Int(frameCount) {
-                // Generate sine wave sample
-                let value = sin(phase * 2.0 * .pi) * Double(amplitude)
-                phase += frequency / sampleRate
-                if phase >= 1.0 {
-                    phase -= 1.0
+                let sample: Float
+                if beepSamplesRemaining > 0 {
+                    // Linear fade-out envelope over the beep duration
+                    let envelope = Float(beepSamplesRemaining) / Float(beepDurationSamples)
+                    sample = Float(sin(phase * 2.0 * .pi)) * amplitude * envelope
+                    phase += fixedFrequency / sampleRate
+                    if phase >= 1.0 { phase -= 1.0 }
+                    beepSamplesRemaining -= 1
+                } else {
+                    sample = 0.0
                 }
 
-                // Write to all channels
                 for buffer in ablPointer {
                     let buf: UnsafeMutableBufferPointer<Float> = UnsafeMutableBufferPointer(buffer)
-                    buf[frame] = Float(value)
+                    buf[frame] = sample
                 }
             }
 
