@@ -1,0 +1,49 @@
+name: Tag
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  tag:
+    name: Create Version Tag
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate new tag
+        id: new_tag
+        run: |
+          # Find the latest semver tag
+          LATEST_TAG=$(git tag -l 'v*' --sort=-version:refname | head -1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            NEW_TAG="v0.0.1"
+          else
+            # Parse version and increment patch
+            VERSION=${LATEST_TAG#v}
+            MAJOR=$(echo $VERSION | cut -d. -f1)
+            MINOR=$(echo $VERSION | cut -d. -f2)
+            PATCH=$(echo $VERSION | cut -d. -f3)
+            PATCH=$((PATCH + 1))
+            NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+          echo "Latest tag: $LATEST_TAG → New tag: $NEW_TAG"
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a ${{ steps.new_tag.outputs.tag }} -m "Version ${{ steps.new_tag.outputs.tag }}"
+          git push origin ${{ steps.new_tag.outputs.tag }}
