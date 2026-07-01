@@ -113,16 +113,9 @@ struct ContentView: View {
         return configs
     }
 
-    /// Appends a new emitter, preferring a pitch not currently being played.
-    /// The candidate pool includes the triad velocities plus the major 7th.
+    /// Appends a new emitter with a random pitch spread across the middle 4 octaves.
     private func addEmitter() {
-        guard !chordVelocities.isEmpty else { return }
-        let pool = chordVelocities + [major7thVelocity]
-        let activeVelocities = emitters.map { $0.initialVelocity }
-        let unused = pool.filter { candidate in
-            !activeVelocities.contains { abs(candidate - $0) < 0.5 }
-        }
-        let velocity = (unused.isEmpty ? pool : unused).randomElement()!
+        let velocity = EmitterGenerator.randomPitchVelocity()
         let config = EmitterGenerator.generateSingleEmitter(
             velocity: velocity,
             existingEmitters: emitters,

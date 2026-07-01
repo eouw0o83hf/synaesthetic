@@ -42,6 +42,13 @@ struct EmitterGenerator {
         return tempoToVelocity(bpm)
     }
 
+    /// Generates a random velocity corresponding to a pitch in the middle 4 octaves.
+    /// Returns a velocity that, when converted to frequency, produces a pitch in pitchRangeHz.
+    static func randomPitchVelocity() -> CGFloat {
+        let randomHz = Double.random(in: pitchRangeHz)
+        return pitchToVelocity(randomHz)
+    }
+
     /// Converts a frequency in Hz to the tempo value (velocity in rad/s) expected by Emitter.
     /// Inverse of: fixedFrequency = (tempo / 25) * 4000
     static func pitchToVelocity(_ hz: Double) -> CGFloat {
